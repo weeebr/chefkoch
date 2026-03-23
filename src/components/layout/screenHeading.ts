@@ -20,4 +20,4 @@ export const SCREEN_TITLE_ICON_CLASS = "text-[0.72em] leading-none text-on-surfa
 
 /** Shared main column for tab screens — keeps padding and flex behavior consistent vs bottom nav. */
 export const TAB_SCREEN_MAIN_CLASS =
-  "mx-auto w-full min-w-0 max-w-xl flex-1 px-6 py-8";
+  "mx-auto w-full min-w-0 max-w-2xl flex-1 px-6 py-8";

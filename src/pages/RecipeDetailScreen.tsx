@@ -103,7 +103,7 @@ export function RecipeDetailScreen({
   }, [detail.steps, scaleFactor]);
 
   return (
-    <main className="mx-auto w-full max-w-xl flex-1 px-6 pb-8 pt-4">
+    <main className="mx-auto w-full max-w-2xl flex-1 px-6 pb-8 pt-4">
       <section className="mb-10">
         <button
           type="button"

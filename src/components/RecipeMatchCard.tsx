@@ -23,7 +23,6 @@ export type RecipeMatchCardProps = {
 
 export function RecipeMatchCard({
   title,
-  minutes,
   onOpen,
   endMeta,
   trailingAction,
@@ -89,11 +88,7 @@ export function RecipeMatchCard({
       >
         <div className="min-w-0 flex-1 space-y-1">
           <h4 className="font-bold text-on-surface">{title}</h4>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-on-surface-variant">
-            <span className="flex shrink-0 items-center gap-1">
-              <MaterialIcon name="schedule" className="text-[14px]" />
-              {minutes > 0 ? `${minutes}m` : "—"}
-            </span>
+          <div className="flex min-w-0 items-center gap-x-3 text-xs font-medium text-on-surface-variant">
             {endMeta}
           </div>
         </div>

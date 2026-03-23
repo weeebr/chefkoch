@@ -4,6 +4,7 @@ import {
   TAB_SCREEN_MAIN_CLASS,
 } from "../components/layout/screenHeading";
 import { MaterialIcon } from "../components/MaterialIcon";
+import { MissingIngredientsSummary } from "../components/MissingIngredientsSummary";
 import {
   chipButtonClassName,
   chipIconClassName,
@@ -44,13 +45,6 @@ function ChipButton({
       <span className={chipLabelClassName(selected)}>{item.name}</span>
     </button>
   );
-}
-
-function truncateMissingIngredients(names: string[]): string {
-  if (names.length === 0) return "";
-  if (names.length === 1) return names[0] ?? "";
-  if (names.length === 2) return `${names[0]}, ${names[1]}`;
-  return `${names[0]}, ${names[1]}, ...`;
 }
 
 type IngredientsScreenProps = {
@@ -167,25 +161,13 @@ export function IngredientsScreen({ onOpenRecipe }: IngredientsScreenProps) {
                     onOpen={() => onOpenRecipe(card.id)}
                     isFullMatch={card.missingIngredients.length === 0}
                     endMeta={
-                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        {card.missingIngredients.length > 0 ? (
-                          <>
-                            <MaterialIcon
-                              name="shopping_cart"
-                              className="shrink-0 text-[14px] text-primary-dim"
-                            />
-                            <span className="text-xs font-bold uppercase tracking-tighter text-primary-dim">
-                              {truncateMissingIngredients(
-                                card.missingIngredients,
-                              )}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="font-bold uppercase tracking-tighter text-on-surface-variant">
-                            {card.tag}
-                          </span>
-                        )}
-                      </span>
+                      card.missingIngredients.length > 0 ? (
+                        <MissingIngredientsSummary names={card.missingIngredients} />
+                      ) : (
+                        <span className="truncate font-bold uppercase tracking-tighter text-on-surface-variant">
+                          {card.tag}
+                        </span>
+                      )
                     }
                     bookmarked={bookmarked}
                     onBookmarkToggle={() => {

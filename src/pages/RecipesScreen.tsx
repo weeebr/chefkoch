@@ -6,17 +6,11 @@ import {
 } from "../components/layout/screenHeading";
 import { RecipeMatchCard } from "../components/RecipeMatchCard";
 import { MaterialIcon } from "../components/MaterialIcon";
+import { MissingIngredientsSummary } from "../components/MissingIngredientsSummary";
 import { useAppData } from "../data/AppDataContext";
 import { selectBookmarkedRowsOrdered } from "../data/selectors";
 import { recipeMatchKind, recipeMissingIngredients } from "../data/matchRecipes";
 import type { RecipeListRow } from "../types";
-
-function truncateMissingIngredients(names: string[]): string {
-  if (names.length === 0) return "";
-  if (names.length === 1) return names[0] ?? "";
-  if (names.length === 2) return `${names[0]}, ${names[1]}`;
-  return `${names[0]}, ${names[1]}, ...`;
-}
 
 type RecipesScreenProps = {
   onOpenRecipe: (recipeId: string) => void;
@@ -77,23 +71,15 @@ export function RecipesScreen({ onOpenRecipe }: RecipesScreenProps) {
                 (() => {
                   const tag = state.recipeCardExtras[row.id]?.tag ?? "—";
                   return (
-                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <>
                       {missingIngredients.length > 0 ? (
-                        <>
-                          <MaterialIcon
-                            name="shopping_cart"
-                            className="shrink-0 text-[14px] text-primary-dim"
-                          />
-                          <span className="text-xs font-bold uppercase tracking-tighter text-primary-dim">
-                            {truncateMissingIngredients(missingIngredients)}
-                          </span>
-                        </>
+                        <MissingIngredientsSummary names={missingIngredients} />
                       ) : (
-                        <span className="font-bold uppercase tracking-tighter text-on-surface-variant">
+                        <span className="truncate font-bold uppercase tracking-tighter text-on-surface-variant">
                           {tag}
                         </span>
                       )}
-                    </span>
+                    </>
                   );
                 })()
               }
