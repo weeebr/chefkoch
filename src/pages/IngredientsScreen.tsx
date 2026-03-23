@@ -142,8 +142,8 @@ export function IngredientsScreen({ onOpenRecipe }: IngredientsScreenProps) {
         </div>
         {matchingRecipeCards.length === 0 ? (
           <p className="rounded-xl border border-dashed border-primary/20 px-4 py-8 text-center text-sm leading-relaxed text-on-surface-variant">
-            Keine Treffer. Wähle Zutaten aus dem Vorrat — es werden auch
-            Rezepte angezeigt, die bis zu zwei Zutaten fehlen lassen.
+            Keine Treffer. Wähle Zutaten aus dem Vorrat — es werden auch Rezepte
+            angezeigt, bei denen bis zu 2 Zutaten fehlen.
           </p>
         ) : (
           <div className="space-y-3">
@@ -175,7 +175,9 @@ export function IngredientsScreen({ onOpenRecipe }: IngredientsScreenProps) {
                               className="shrink-0 text-[14px] text-primary-dim"
                             />
                             <span className="text-xs font-bold uppercase tracking-tighter text-primary-dim">
-                              {truncateMissingIngredients(card.missingIngredients)}
+                              {truncateMissingIngredients(
+                                card.missingIngredients,
+                              )}
                             </span>
                           </>
                         ) : (

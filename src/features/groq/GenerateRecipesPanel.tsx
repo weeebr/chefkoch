@@ -23,19 +23,6 @@ export function GenerateRecipesPanel() {
   return (
     <section className="space-y-3 pt-2">
       <div className="mx-auto w-full max-w-sm space-y-3 rounded-2xl border border-primary/14 bg-primary-container/8 p-4">
-        <label className="flex cursor-pointer items-start gap-3 text-left">
-          <input
-            type="checkbox"
-            checked={willingToShop}
-            onChange={(e) => setWillingToShop(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border-outline-variant accent-primary focus:ring-primary/20"
-          />
-          <span className="text-sm leading-snug text-on-surface">
-            <span className="font-semibold"> mit Zusatz-Zutaten</span>
-            <span> (Einkauf)</span>
-          </span>
-        </label>
-
         <button
           type="button"
           disabled={!canGenerate}
@@ -51,8 +38,23 @@ export function GenerateRecipesPanel() {
             filled
             className="text-on-primary-container"
           />
-          <span>{genLoading ? "Wird generiert…" : "Neue Rezepte generieren"}</span>
+          <span>
+            {genLoading ? "Wird generiert…" : "Neue Rezepte generieren"}
+          </span>
         </button>
+
+        <label className="mx-auto flex w-fit cursor-pointer items-start gap-3 text-left">
+          <input
+            type="checkbox"
+            checked={willingToShop}
+            onChange={(e) => setWillingToShop(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-outline-variant accent-primary focus:ring-primary/20"
+          />
+          <span className="text-sm leading-snug text-on-surface">
+            <span className="font-semibold"> mit Zusatz-Zutaten</span>
+            <span> (Einkauf)</span>
+          </span>
+        </label>
       </div>
       {!hasGroqKey && (
         <p className="text-center text-xs text-on-surface-variant">
@@ -61,7 +63,7 @@ export function GenerateRecipesPanel() {
       )}
       {hasGroqKey && !hasSelection && (
         <p className="text-center text-xs text-on-surface-variant">
-          Mindestens eine Zutat auswählen.
+          Mindestens 1 Zutat auswählen.
         </p>
       )}
       {genError && (

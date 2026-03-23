@@ -1,4 +1,7 @@
-import { GROQ_RECIPE_BATCH_COUNT, GROQ_RECIPES_PER_BATCH } from "./groqConstants";
+import {
+  GROQ_RECIPE_BATCH_COUNT,
+  GROQ_RECIPES_PER_BATCH,
+} from "./groqConstants";
 import { buildSystemPrompt, buildUserMessage } from "./groqPrompt";
 import { parseRecipesPayload } from "./groqParse";
 import type { GroqRecipeJson, RecipeGenerationInput } from "./groqTypes";
@@ -11,7 +14,11 @@ const GROQ_MAX_OUTPUT_TOKENS = 4096;
 /** Same-origin proxy in dev (`vite.config`) and production (Vercel `api/groq.ts`). */
 const GROQ_CHAT_URL = "/api/groq";
 
-async function postGroqChat(apiKey: string, system: string, user: string): Promise<string> {
+async function postGroqChat(
+  apiKey: string,
+  system: string,
+  user: string,
+): Promise<string> {
   let res: Response;
   try {
     res = await fetch(GROQ_CHAT_URL, {
@@ -84,7 +91,7 @@ export async function fetchRecipesFromGroq(
     throw new Error("Kein API-Schlüssel. Bitte unter Settings eintragen.");
   }
   if (input.pantryLines.length === 0) {
-    throw new Error("Wähle mindestens eine Zutat aus.");
+    throw new Error("Wähle mindestens 1 Zutat aus.");
   }
 
   const system = buildSystemPrompt({ recipesPerCall: GROQ_RECIPES_PER_BATCH });

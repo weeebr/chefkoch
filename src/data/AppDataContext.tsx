@@ -190,7 +190,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         return "Kein API-Schlüssel. Bitte unter Settings eintragen.";
       }
       if (selectedIds.length === 0) {
-        return "Wähle mindestens eine Zutat aus.";
+        return "Wähle mindestens 1 Zutat aus.";
       }
 
       const pantryById = new Map(state.pantry.map((p) => [p.id, p]));
@@ -287,7 +287,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
+  return (
+    <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>
+  );
 }
 
 export function useAppData(): AppDataContextValue {
