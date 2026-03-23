@@ -99,9 +99,11 @@ export function recipeMatchKind(
 export function recipeMissingIngredients(
   recipeId: string,
   state: AppState,
-  maxMissing: number,
+  maxMissing?: number,
 ): string[] {
-  return missingIngredientsForCurrentSelection(recipeId, state, {
+  const all = missingIngredientsForCurrentSelection(recipeId, state, {
     includeShoppingAddOns: true,
-  }).slice(0, maxMissing);
+  });
+  if (typeof maxMissing !== "number" || maxMissing < 0) return all;
+  return all.slice(0, maxMissing);
 }
