@@ -1,0 +1,29 @@
+---
+description: Product scope and assumptions for Culinary Curator (single-user, single-device).
+alwaysApply: true
+---
+
+# Culinary Curator — project context
+
+## Audience and deployment
+
+- **Single user, single device.** The app is designed for one person using one browser profile on one machine.
+- **No multi-user accounts, no sync, no shared URLs** as a supported workflow. State lives in **localStorage** (`src/data/storage.ts`); there is no backend user model.
+- **LLM-generated recipe text** should be normalized to **Swiss-German conventions in the write path** (before `savePersistedState`), not only in the UI — persisted data is the source of truth for orthography (see `swissDisplayText.ts` / `groqMap.ts`).
+
+## Navigation and recipe IDs
+
+- **Screen stack / detail overlay** use local React state in `App.tsx` (`recipeDetailId`, active tab); there is **no** URL-based recipe routing in the current design (option **C**: keep it that way unless product scope changes).
+- Recipe screens are opened **only from in-app UI** (lists, cards). Recipe IDs are always chosen from data that already exists in `AppState`.
+- **Invalid or missing `recipeDetails[id]` is not a supported scenario** under this design. Do not prioritize defensive empty states, error boundaries for “unknown recipe id,” or deep-link recovery unless the product scope explicitly changes.
+- A **stale id** after a data mutation (e.g. recipe removed while detail was open) may optionally be cleared for polish; that is separate from “random invalid id” handling.
+
+## Backwards compatibility
+
+- **Do not** maintain backwards compatibility for persisted data, `localStorage` / `AppState` shape, or in-app APIs unless explicitly requested.
+- Renaming or removing fields is **breaking**: update schema, defaults, and readers — **no** dual-read of legacy keys, no versioned migrations, no “read old key and backfill” in `storage.ts` for prior releases. Users are single-device; stale data can be dropped or require clearing site data.
+
+## Implications for agents and refactors
+
+- Prefer **simple invariants** (e.g. detail exists when the detail screen mounts) over extra branches for impossible states.
+- When adding URL routing later, **validating unknown ids** is optional polish, not a requirement for this codebase’s intended use.
