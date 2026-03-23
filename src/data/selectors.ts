@@ -1,6 +1,11 @@
 import type { RecipeMatchCard, RecipeListRow } from "../types";
-import { recipeMatchKind, recipeMissingIngredients } from "./matchRecipes";
+import {
+  recipeMatchKind,
+  recipeMissingCount,
+  recipeMissingIngredients,
+} from "./matchRecipes";
 import type { AppState } from "./schema";
+import { GROQ_RECIPES_PER_BATCH } from "../features/groq/groqConstants";
 
 /** Cards for Zutaten → Passende Rezepte (filtered by multi-select + full ingredient match). */
 export function selectMatchingRecipeCards(state: AppState): RecipeMatchCard[] {
@@ -9,15 +14,36 @@ export function selectMatchingRecipeCards(state: AppState): RecipeMatchCard[] {
   );
 
   const maxMissing = 2;
+  const alwaysShowNewestCount = GROQ_RECIPES_PER_BATCH;
 
   const matchedRows = state.recipeRows
-    .map((row) => ({ row, match: recipeMatchKind(row.id, state, maxMissing) }))
-    .filter((x): x is { row: (typeof x)["row"]; match: NonNullable<typeof x.match> } => {
-      return Boolean(x.match);
+    .map((row) => {
+      const match = recipeMatchKind(row.id, state, maxMissing);
+      const orderPos = orderIndex.get(row.id);
+      const isNewestGenerated =
+        orderPos !== undefined && orderPos < alwaysShowNewestCount;
+      if (match) {
+        return { row, match, orderPos };
+      }
+      if (!isNewestGenerated) {
+        return null;
+      }
+      const missing = recipeMissingCount(row.id, state);
+      return {
+        row,
+        orderPos,
+        match: {
+          matchMissingCount: missing,
+          matchKind: missing === 0 ? ("full" as const) : ("partial" as const),
+        },
+      };
+    })
+    .filter((x): x is { row: (typeof state.recipeRows)[number]; match: NonNullable<ReturnType<typeof recipeMatchKind>> | { matchMissingCount: number; matchKind: "full" | "partial" }; orderPos: number | undefined } => {
+      return Boolean(x);
     })
     .sort((a, b) => {
-      const ia = orderIndex.get(a.row.id);
-      const ib = orderIndex.get(b.row.id);
+      const ia = a.orderPos;
+      const ib = b.orderPos;
       const scoreA = ia !== undefined ? ia : 1000;
       const scoreB = ib !== undefined ? ib : 1000;
       if (scoreA !== scoreB) return scoreA - scoreB;
