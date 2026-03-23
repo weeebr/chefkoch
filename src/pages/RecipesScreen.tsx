@@ -31,6 +31,7 @@ export function RecipesScreen({ onOpenRecipe }: RecipesScreenProps) {
 
   const matchingBookmarkedRows = useMemo(() => {
     const maxMissing = 2;
+    const maxMissingForDisplay = maxMissing + 1;
     return recipeListRows
       .map((row) => {
         const kind = recipeMatchKind(row.id, state, maxMissing)?.matchKind ?? null;
@@ -38,7 +39,11 @@ export function RecipesScreen({ onOpenRecipe }: RecipesScreenProps) {
           ? {
               row,
               matchKind: kind,
-              missingIngredients: recipeMissingIngredients(row.id, state, maxMissing),
+              missingIngredients: recipeMissingIngredients(
+                row.id,
+                state,
+                maxMissingForDisplay,
+              ),
             }
           : null;
       })

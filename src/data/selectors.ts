@@ -14,6 +14,7 @@ export function selectMatchingRecipeCards(state: AppState): RecipeMatchCard[] {
   );
 
   const maxMissing = 2;
+  const maxMissingForDisplay = maxMissing + 1;
   const alwaysShowNewestCount = GROQ_RECIPES_PER_BATCH;
 
   const matchedRows = state.recipeRows
@@ -58,7 +59,11 @@ export function selectMatchingRecipeCards(state: AppState): RecipeMatchCard[] {
   const cards: RecipeMatchCard[] = [];
   for (const { row, match } of matchedRows) {
     const extras = state.recipeCardExtras[row.id] ?? { tag: "—" };
-    const missingIngredients = recipeMissingIngredients(row.id, state, maxMissing);
+    const missingIngredients = recipeMissingIngredients(
+      row.id,
+      state,
+      maxMissingForDisplay,
+    );
     cards.push({
       id: row.id,
       title: row.title,
