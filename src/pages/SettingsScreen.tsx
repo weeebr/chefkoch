@@ -154,7 +154,7 @@ function ManageRow({
               type="radio"
               value="raw"
             />
-            <span className="text-sm font-medium text-on-surface">Roh</span>
+            <span className="text-sm font-medium text-on-surface">Prep nötig</span>
           </label>
           <label className="flex cursor-pointer items-center gap-2">
             <input
@@ -166,7 +166,7 @@ function ManageRow({
               value="precooked"
             />
             <span className="text-sm font-medium text-on-surface">
-              Vorgekocht
+              Ready / Vorgekocht
             </span>
           </label>
         </div>
@@ -303,7 +303,7 @@ export function SettingsScreen() {
                     value="raw"
                   />
                   <span className="text-sm font-medium text-on-surface">
-                    Roh
+                    Prep nötig
                   </span>
                 </label>
                 <label className="flex cursor-pointer items-center gap-2">
@@ -316,7 +316,7 @@ export function SettingsScreen() {
                     value="precooked"
                   />
                   <span className="text-sm font-medium text-on-surface">
-                    Vorgekocht
+                    Ready / Vorgekocht
                   </span>
                 </label>
               </div>

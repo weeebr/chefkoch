@@ -93,12 +93,12 @@ export function IngredientsScreen({ onOpenRecipe }: IngredientsScreenProps) {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h3 className={ingredientSectionHeadingClass}>Vorgekocht</h3>
+          <h3 className={ingredientSectionHeadingClass}>Ready / Vorgekocht</h3>
           <span className="text-xs font-semibold tabular-nums text-on-secondary-fixed-variant">
             {preCookedChips.length} Einträge
           </span>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {preCookedChips.map((item) => (
             <ChipButton
               key={item.id}
@@ -112,12 +112,12 @@ export function IngredientsScreen({ onOpenRecipe }: IngredientsScreenProps) {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h3 className={ingredientSectionHeadingClass}>Nicht vorgekocht</h3>
+          <h3 className={ingredientSectionHeadingClass}>Prep nötig</h3>
           <span className="text-xs font-semibold tabular-nums text-on-secondary-fixed-variant">
             {notPreCookedItemCount} Einträge
           </span>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {notPreCookedChips.map((item) => (
             <ChipButton
               key={item.id}

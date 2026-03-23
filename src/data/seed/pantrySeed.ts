@@ -27,14 +27,14 @@ const preCookedSeed: PantryIngredient[] = [
     id: "pc_rice",
     name: "Reis",
     category: c("Getreide, Reis & Teigwaren"),
-    status: "precooked",
+    status: "raw",
     addedAt: 2,
   },
   {
     id: "pc_pasta",
     name: "Pasta",
     category: c("Getreide, Reis & Teigwaren"),
-    status: "precooked",
+    status: "raw",
     addedAt: 3,
   },
   {
@@ -55,7 +55,7 @@ const preCookedSeed: PantryIngredient[] = [
   },
   {
     id: "pc_sweetsour",
-    name: "Süsssauersauce",
+    name: "Süsssauer-Sauce",
     category: c("Konserven & Vorratskammer"),
     status: "precooked",
     addedAt: 6,
@@ -117,7 +117,7 @@ const freshSeed: PantryIngredient[] = [
     id: "fr_creamcheese",
     name: "Frischkäse",
     category: c("Milchprodukte & Käse"),
-    status: "raw",
+    status: "precooked",
     addedAt: 14,
   },
   {
@@ -145,7 +145,7 @@ const freshSeed: PantryIngredient[] = [
     id: "fr_eggs",
     name: "Eier",
     category: c("Eier"),
-    status: "raw",
+    status: "precooked",
     addedAt: 18,
   },
   {

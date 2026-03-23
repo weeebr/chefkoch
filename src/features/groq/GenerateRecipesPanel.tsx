@@ -22,27 +22,28 @@ export function GenerateRecipesPanel() {
 
   return (
     <section className="space-y-3 pt-2">
-      <label className="mx-auto flex max-w-sm cursor-pointer items-start gap-3 rounded-2xl border border-primary/14 bg-primary-container/8 px-4 py-3 text-left">
-        <input
-          type="checkbox"
-          checked={willingToShop}
-          onChange={(e) => setWillingToShop(e.target.checked)}
-          className="mt-0.5 h-4 w-4 shrink-0 rounded border-outline-variant accent-primary focus:ring-primary/20"
-        />
-        <span className="text-sm leading-snug text-on-surface">
-          <span className="font-semibold"> mit Zusatz-Zutaten</span>
-          <span> (Einkauf)</span>
-        </span>
-      </label>
-      <div className="flex justify-center">
+      <div className="mx-auto w-full max-w-sm space-y-3 rounded-2xl border border-primary/14 bg-primary-container/8 p-4">
+        <label className="flex cursor-pointer items-start gap-3 text-left">
+          <input
+            type="checkbox"
+            checked={willingToShop}
+            onChange={(e) => setWillingToShop(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-outline-variant accent-primary focus:ring-primary/20"
+          />
+          <span className="text-sm leading-snug text-on-surface">
+            <span className="font-semibold"> mit Zusatz-Zutaten</span>
+            <span> (Einkauf)</span>
+          </span>
+        </label>
+
         <button
           type="button"
           disabled={!canGenerate}
           onClick={() => void handleGenerate()}
           className={
             canGenerate
-              ? "flex items-center gap-3 rounded-full border border-primary/22 bg-primary-container/90 px-8 py-3.5 font-bold text-on-primary-container transition-all active:scale-95 active:bg-primary-container"
-              : "flex cursor-not-allowed items-center gap-3 rounded-full bg-on-surface/12 px-8 py-3.5 font-bold text-on-surface/38"
+              ? "flex w-full items-center justify-center gap-3 rounded-full border border-primary/22 bg-primary-container/90 px-8 py-3.5 font-bold text-on-primary-container transition-all active:scale-95 active:bg-primary-container"
+              : "flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-full bg-on-surface/12 px-8 py-3.5 font-bold text-on-surface/38"
           }
         >
           <MaterialIcon
@@ -50,9 +51,7 @@ export function GenerateRecipesPanel() {
             filled
             className="text-on-primary-container"
           />
-          <span>
-            {genLoading ? "Wird generiert…" : "Neue Rezepte generieren"}
-          </span>
+          <span>{genLoading ? "Wird generiert…" : "Neue Rezepte generieren"}</span>
         </button>
       </div>
       {!hasGroqKey && (
