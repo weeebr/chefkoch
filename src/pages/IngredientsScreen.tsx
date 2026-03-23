@@ -168,7 +168,7 @@ export function IngredientsScreen({ onOpenRecipe }: IngredientsScreenProps) {
                     isFullMatch={card.matchMissingCount === 0}
                     endMeta={
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        {card.matchMissingCount > 0 ? (
+                        {card.missingIngredients.length > 0 ? (
                           <>
                             <MaterialIcon
                               name="shopping_cart"

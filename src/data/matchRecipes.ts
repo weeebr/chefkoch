@@ -27,6 +27,7 @@ function ingredientBaseLabel(component: string): string {
 function missingIngredientsForCurrentSelection(
   recipeId: string,
   state: AppState,
+  opts?: { includeShoppingAddOns?: boolean },
 ): string[] {
   const detail = state.recipeDetails[recipeId];
   if (!detail) return [];
@@ -42,9 +43,12 @@ function missingIngredientsForCurrentSelection(
     const display = ingredientBaseLabel(row.component);
     const key = normalizeIngredientLabel(display);
     if (!key) continue;
-    // In shopping mode, detail ingredients can include add-ons not present as chips.
-    // Match status should only be based on the pantry-required ingredient universe.
-    if (requiredSet.size > 0 && !requiredSet.has(key)) continue;
+    // For match-state computation we ignore shopping-only add-ons and only
+    // evaluate the required pantry ingredient universe. For display we can
+    // optionally include add-ons to show what is still missing to buy.
+    if (!opts?.includeShoppingAddOns) {
+      if (requiredSet.size > 0 && !requiredSet.has(key)) continue;
+    }
 
     const left = selectedCounts.get(key) ?? 0;
     if (left > 0) {
@@ -73,7 +77,9 @@ export function recipeFullyMatches(recipeId: string, state: AppState): boolean {
  * - partial matches (missing<=allowance)
  */
 export function recipeMissingCount(recipeId: string, state: AppState): number {
-  const missing = missingIngredientsForCurrentSelection(recipeId, state);
+  const missing = missingIngredientsForCurrentSelection(recipeId, state, {
+    includeShoppingAddOns: false,
+  });
   return missing.length;
 }
 
@@ -95,5 +101,7 @@ export function recipeMissingIngredients(
   state: AppState,
   maxMissing: number,
 ): string[] {
-  return missingIngredientsForCurrentSelection(recipeId, state).slice(0, maxMissing);
+  return missingIngredientsForCurrentSelection(recipeId, state, {
+    includeShoppingAddOns: true,
+  }).slice(0, maxMissing);
 }
