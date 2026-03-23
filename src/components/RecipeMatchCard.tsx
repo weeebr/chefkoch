@@ -31,13 +31,13 @@ export function RecipeMatchCard({
   isFullMatch = false,
   onBookmarkToggle,
 }: RecipeMatchCardProps) {
-  const accentTextClass = isFullMatch ? "text-secondary-dim" : "text-primary-dim";
+  const accentTextClass = isFullMatch ? "text-primary-dim" : "text-secondary-dim";
   const accentBgClass = isFullMatch
-    ? "active:bg-secondary-fixed-dim/30"
-    : "active:bg-primary-container/30";
+    ? "active:bg-primary-container/30"
+    : "active:bg-secondary-fixed-dim/30";
   const chevronClass = isFullMatch
-    ? "shrink-0 text-secondary-dim/70"
-    : "shrink-0 text-primary-dim/70";
+    ? "shrink-0 text-primary-dim/70"
+    : "shrink-0 text-secondary-dim/70";
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -72,12 +72,12 @@ export function RecipeMatchCard({
       className={[
         "flex items-stretch justify-between rounded-2xl border transition-colors",
         bookmarked && isFullMatch
-          ? "border-secondary/45 bg-secondary-fixed-dim/30"
+          ? "border-primary/45 bg-primary-container/40"
           : bookmarked
-            ? "border-primary/45 bg-primary-container/40"
+            ? "border-secondary/45 bg-secondary-fixed-dim/30"
             : isFullMatch
-              ? "border-secondary/35 bg-secondary-fixed-dim/5"
-              : "border-primary/30 bg-primary-container/15",
+              ? "border-primary/30 bg-primary-container/15"
+              : "border-secondary/35 bg-secondary-fixed-dim/5",
       ].join(" ")}
     >
       <div

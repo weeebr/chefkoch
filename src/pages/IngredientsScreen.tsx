@@ -172,9 +172,9 @@ export function IngredientsScreen({ onOpenRecipe }: IngredientsScreenProps) {
                           <>
                             <MaterialIcon
                               name="shopping_cart"
-                              className="shrink-0 text-[14px] text-primary-dim"
+                              className="shrink-0 text-[14px] text-secondary-dim"
                             />
-                            <span className="text-xs font-bold uppercase tracking-tighter text-primary-dim">
+                            <span className="text-xs font-bold uppercase tracking-tighter text-secondary-dim">
                               {truncateMissingIngredients(
                                 card.missingIngredients,
                               )}
