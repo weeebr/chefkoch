@@ -8,8 +8,11 @@ import type { GroqRecipeJson, RecipeGenerationInput } from "./groqTypes";
 
 const GROQ_MODEL = "moonshotai/kimi-k2-instruct-0905";
 
-/** Enough for three structured recipes without overshooting on-demand TPM. */
-const GROQ_MAX_OUTPUT_TOKENS = 4096;
+/**
+ * Keep generous headroom so 3 full recipe objects are not truncated mid-JSON.
+ * Truncation was causing parser failures like "Expected ',' or '}' ...".
+ */
+const GROQ_MAX_OUTPUT_TOKENS = 8192;
 
 /** Same-origin proxy in dev (`vite.config`) and production (Vercel `api/groq.ts`). */
 const GROQ_CHAT_URL = "/api/groq";
