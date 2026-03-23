@@ -31,6 +31,14 @@ export function RecipeMatchCard({
   isFullMatch = false,
   onBookmarkToggle,
 }: RecipeMatchCardProps) {
+  const accentTextClass = isFullMatch ? "text-secondary-dim" : "text-primary-dim";
+  const accentBgClass = isFullMatch
+    ? "active:bg-secondary-fixed-dim/30"
+    : "active:bg-primary-container/30";
+  const chevronClass = isFullMatch
+    ? "shrink-0 text-secondary-dim/70"
+    : "shrink-0 text-primary-dim/70";
+
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -42,7 +50,11 @@ export function RecipeMatchCard({
   const addBookmarkButton = showAddBookmark ? (
     <button
       type="button"
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-primary transition-[color,transform] active:scale-95 active:bg-primary-container/30"
+      className={[
+        "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-[color,transform] active:scale-95",
+        accentTextClass,
+        accentBgClass,
+      ].join(" ")}
       aria-label={BOOKMARK_ARIA_ADD}
       aria-pressed={false}
       onClick={(e) => {
@@ -62,10 +74,10 @@ export function RecipeMatchCard({
         bookmarked && isFullMatch
           ? "border-secondary/45 bg-secondary-fixed-dim/30"
           : bookmarked
-            ? "border-primary/45 bg-primary-container/50"
+            ? "border-primary/45 bg-primary-container/40"
             : isFullMatch
               ? "border-secondary/35 bg-secondary-fixed-dim/5"
-              : "border-primary/35 bg-primary-container/15",
+              : "border-primary/30 bg-primary-container/15",
       ].join(" ")}
     >
       <div
@@ -88,7 +100,7 @@ export function RecipeMatchCard({
         {addBookmarkButton}
         <MaterialIcon
           name="chevron_right"
-          className="shrink-0 text-on-surface-variant/40"
+          className={chevronClass}
         />
       </div>
       {stripContent ? (

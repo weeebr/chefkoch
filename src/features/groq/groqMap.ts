@@ -254,11 +254,42 @@ export function groqJsonToListRow(recipeId: string, j: GroqRecipeJson): RecipeLi
   });
 }
 
+function isGenericCookingTag(tag: string): boolean {
+  const t = tag.trim().toLowerCase();
+  if (!t) return false;
+  return /^(pfanne|ofen|topf|grill|wok|blech|dampf|steamer)$/.test(t);
+}
+
+function summarizeFlavorTagFromIngredients(j: GroqRecipeJson): string {
+  const notes: string[] = [];
+  const pushNote = (n: unknown) => {
+    if (typeof n !== "string") return;
+    const trimmed = n.trim();
+    if (!trimmed) return;
+    const short = trimmed.split(/[.;,]/)[0]?.trim() ?? "";
+    if (!short || short.length > 24) return;
+    if (!notes.some((x) => x.toLowerCase() === short.toLowerCase())) notes.push(short);
+  };
+  for (const r of j.ingredientsOnHand ?? []) pushNote(r?.flavorNote);
+  for (const r of j.ingredientsShopping ?? []) pushNote(r?.flavorNote);
+  for (const r of j.ingredients ?? []) pushNote(r?.flavorNote);
+
+  if (notes.length >= 2) return `${notes[0]} & ${notes[1]}`;
+  if (notes.length === 1) return notes[0];
+  return "";
+}
+
 export function groqJsonToTag(j: GroqRecipeJson): string {
   const t = typeof j.tag === "string" ? j.tag.trim() : "";
   let out: string;
   if (t.length > 0) {
-    out = t.length > 48 ? `${t.slice(0, 45)}…` : t;
+    if (isGenericCookingTag(t)) {
+      const flavorTag = summarizeFlavorTagFromIngredients(j);
+      out = flavorTag || t;
+    } else {
+      out = t;
+    }
+    if (out.length > 48) out = `${out.slice(0, 45)}…`;
   } else {
     const title = typeof j.title === "string" ? j.title.trim() : "";
     if (title) {

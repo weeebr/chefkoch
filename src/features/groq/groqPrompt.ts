@@ -49,6 +49,7 @@ Antworte **nur** mit **einem** gültigen JSON-Objekt (kein Markdown, kein Text d
 \`\`\`
 
 - **recipes**: In **diesem** API-Aufruf **genau ${recipesPerCall}** Einträge (**ein** Aufruf insgesamt). Die drei Gerichte müssen sich **untereinander** klar unterscheiden (siehe \`BATCH.HINWEIS\`).
+- **tag**: Kurzes Profil fuer die Karten-Meta, **bevorzugt Geschmacks-/Texturstil** (z. B. \`scharf & cremig\`, \`zitronig & frisch\`, \`rauchig & herzhaft\`). **Nicht** primär Kochgeraet (\`Pfanne\`, \`Ofen\`, \`Topf\` nur wenn kein besseres Profil moeglich).
 - **minutes**: Gesamtzeit (Vorbereitung + Kochen) in Minuten; konsistent zu \`prepMinutes\` + \`cookMinutes\` halten.
 - **servings**: Ganze Zahl (typisch 2–6) — **alle Mengen** in den Zutatenlisten beziehen sich auf genau diese Portionenzahl.
 - **Zutatenzeilen**: \`alternatives\`, \`purchaseHint\`, \`flavorNote\` bei Bedarf; leere Strings weglassen. Vorrat-Zeilen: keine erfundenen Zutaten ausserhalb von \`ZUTATEN_VORHANDEN\`.
