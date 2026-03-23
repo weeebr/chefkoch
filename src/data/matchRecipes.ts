@@ -30,6 +30,10 @@ function missingIngredientsForCurrentSelection(
 ): string[] {
   const detail = state.recipeDetails[recipeId];
   if (!detail) return [];
+  const requiredNames = state.recipeRequiredPantryNames[recipeId] ?? [];
+  const requiredSet = new Set(
+    requiredNames.map((x) => normalizeIngredientLabel(x)).filter(Boolean),
+  );
 
   const selectedCounts = selectedIngredientCounts(state);
   const missing: string[] = [];
@@ -38,6 +42,9 @@ function missingIngredientsForCurrentSelection(
     const display = ingredientBaseLabel(row.component);
     const key = normalizeIngredientLabel(display);
     if (!key) continue;
+    // In shopping mode, detail ingredients can include add-ons not present as chips.
+    // Match status should only be based on the pantry-required ingredient universe.
+    if (requiredSet.size > 0 && !requiredSet.has(key)) continue;
 
     const left = selectedCounts.get(key) ?? 0;
     if (left > 0) {

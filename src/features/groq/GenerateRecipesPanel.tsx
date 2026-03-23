@@ -11,6 +11,7 @@ export function GenerateRecipesPanel() {
   const hasGroqKey = Boolean(state.groqApiKey.trim());
   const hasSelection = state.selectedPantryIds.length > 0;
   const canGenerate = hasGroqKey && hasSelection && !genLoading;
+  const hasGenerationPrereqs = hasGroqKey && hasSelection;
 
   async function handleGenerate() {
     setGenError(null);
@@ -27,16 +28,31 @@ export function GenerateRecipesPanel() {
           type="button"
           disabled={!canGenerate}
           onClick={() => void handleGenerate()}
-          className={
-            canGenerate
-              ? "flex w-full items-center justify-center gap-3 rounded-full border border-primary/22 bg-primary-container/90 px-8 py-3.5 font-bold text-on-primary-container transition-all active:scale-95 active:bg-primary-container"
-              : "flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-full bg-on-surface/12 px-8 py-3.5 font-bold text-on-surface/38"
-          }
+          className={[
+            "flex w-full items-center justify-center gap-3 rounded-full px-8 py-3.5 font-bold transition-all",
+            !hasGenerationPrereqs
+              ? "cursor-not-allowed bg-on-surface/12 text-on-surface/38"
+              : willingToShop
+                ? "border border-primary/22 bg-primary-container/90 text-on-primary-container"
+                : "border border-secondary/25 bg-secondary-container/80 text-on-secondary-container",
+            canGenerate ? "active:scale-95" : "",
+            genLoading
+              ? willingToShop
+                ? "bg-primary-container text-on-primary-container/90"
+                : "bg-secondary-container text-on-secondary-container/90"
+              : "",
+          ].join(" ")}
         >
           <MaterialIcon
             name="auto_awesome"
             filled
-            className="text-on-primary-container"
+            className={
+              !hasGenerationPrereqs
+                ? "text-on-surface/38"
+                : willingToShop
+                  ? "text-on-primary-container"
+                  : "text-on-secondary-container"
+            }
           />
           <span>
             {genLoading ? "Wird generiert…" : "Neue Rezepte generieren"}
