@@ -165,7 +165,7 @@ export function IngredientsScreen({ onOpenRecipe }: IngredientsScreenProps) {
                     title={card.title}
                     minutes={card.minutes}
                     onOpen={() => onOpenRecipe(card.id)}
-                    isFullMatch={card.matchMissingCount === 0}
+                    isFullMatch={card.missingIngredients.length === 0}
                     endMeta={
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         {card.missingIngredients.length > 0 ? (
