@@ -127,10 +127,10 @@ export function IngredientsScreen({ onOpenRecipe }: IngredientsScreenProps) {
 
       <section className="space-y-6 border-t border-primary/15 pt-4">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-primary-dim">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant">
             Passende Rezepte
           </h3>
-          <span className="text-xs font-semibold tabular-nums text-primary/75">
+          <span className="text-xs font-semibold tabular-nums text-on-surface-variant/80">
             {matchingRecipeCards.length} Treffer
           </span>
         </div>

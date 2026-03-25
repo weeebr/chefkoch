@@ -28,8 +28,8 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
               onClick={() => onChange(tab.id)}
               className={
                 isActive
-                  ? "flex min-h-[52px] w-full flex-col items-center justify-center gap-1.5 rounded-2xl bg-primary-container/40 px-1 py-2.5 text-primary transition-transform active:scale-95"
-                  : "flex min-h-[52px] w-full flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-2.5 text-on-surface-variant/50 transition-colors active:text-primary active:scale-95"
+                  ? "flex min-h-[52px] w-full flex-col items-center justify-center gap-1.5 rounded-2xl bg-secondary-fixed-dim/35 px-1 py-2.5 text-secondary transition-transform active:scale-95"
+                  : "flex min-h-[52px] w-full flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-2.5 text-on-surface-variant/50 transition-colors active:text-secondary active:scale-95"
               }
             >
               <MaterialIcon name={tab.icon} className="shrink-0 text-[26px]" />
