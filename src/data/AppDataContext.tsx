@@ -9,18 +9,23 @@ import {
 import type { IconCategory, PantryIngredient, RecipeMatchCard } from "../types";
 import {
   applyGeneratedRecipesBatch,
-  fetchRecipesFromGroq,
+  appendGeneratedRecipesBatch,
+  fetchRecipeFromGroqOnce,
 } from "../features/groq";
+import { GROQ_RECIPES_PER_BATCH } from "../features/groq/groqConstants";
+import { recordRateLimitCooldown } from "../features/groq/groqTpmMinuteStore";
 import type { AppState } from "./schema";
 import { selectMatchingRecipeCards } from "./selectors";
 import {
   loadPersistedState,
-  resetPersistedStatePreservingGroqKey,
+  resetPersistedState,
   savePersistedState,
 } from "./storage";
 
 type AppDataContextValue = {
   state: AppState;
+  isGeneratingRecipes: boolean;
+  pendingGeneratedRecipeSlots: number;
   addPantryItem: (input: {
     name: string;
     category: IconCategory;
@@ -41,14 +46,15 @@ type AppDataContextValue = {
   /** Cards for Zutaten → Passende Rezepte (filtered by multi-select + 100% ingredient match). */
   matchingRecipeCards: RecipeMatchCard[];
   toggleBookmarkRecipe: (recipeId: string) => void;
-  /** Full reset of persisted app state except `groqApiKey` (pantry, recipes, bookmarks, …). */
-  resetAppDataExceptGroqKey: () => void;
+  resetAppData: () => void;
 };
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => loadPersistedState());
+  const [isGeneratingRecipes, setIsGeneratingRecipes] = useState(false);
+  const [pendingGeneratedRecipeSlots, setPendingGeneratedRecipeSlots] = useState(0);
 
   const addPantryItem = useCallback(
     (input: {
@@ -176,21 +182,25 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const resetAppDataExceptGroqKey = useCallback(() => {
-    setState((prev) => resetPersistedStatePreservingGroqKey(prev.groqApiKey));
+  const resetAppData = useCallback(() => {
+    setState((prev) => {
+      const next = resetPersistedState();
+      const preserved: AppState = { ...next, groqApiKey: prev.groqApiKey };
+      savePersistedState(preserved);
+      return preserved;
+    });
   }, []);
 
   const generateRecipesFromPantrySelection = useCallback(
     async (opts?: { willingToShop?: boolean }): Promise<string | null> => {
-      const key = state.groqApiKey.trim();
+      const apiKey = state.groqApiKey.trim();
       const selectedIds = [...new Set(state.selectedPantryIds)];
       const willingToShop = opts?.willingToShop ?? false;
-
-      if (!key) {
-        return "Kein API-Schlüssel. Bitte unter Settings eintragen.";
+      if (!apiKey) {
+        return "Kein Groq-API-Schlüssel. Bitte unter Settings eintragen.";
       }
-      if (selectedIds.length === 0) {
-        return "Wähle mindestens 1 Zutat aus.";
+      if (selectedIds.length < 2) {
+        return "Wähle mindestens 2 Zutaten aus.";
       }
 
       const pantryById = new Map(state.pantry.map((p) => [p.id, p]));
@@ -210,19 +220,23 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const recipes = await fetchRecipesFromGroq(key, {
-          pantryLines: selectedPantry.map((p) => ({
-            name: p.name,
-            category: p.category,
-            status: p.status,
-          })),
-          willingToShop,
-          regionLabel: state.shoppingLocationLabel,
-        });
+        const pantryLines = selectedPantry.map((p) => ({
+          name: p.name,
+          category: p.category,
+          status: p.status,
+        }));
+
+        const totalRecipesToGenerate = GROQ_RECIPES_PER_BATCH;
+        setIsGeneratingRecipes(true);
+        setPendingGeneratedRecipeSlots(totalRecipesToGenerate);
+        const previousRecipeTitles: string[] = [];
+        const previousRecipeHints: NonNullable<
+          import("../features/groq/groqTypes").RecipeGenerationInput["previousRecipeHints"]
+        > = [];
 
         setState((prev) => {
           const next = applyGeneratedRecipesBatch(prev, {
-            recipes,
+            recipes: [],
             selectedPantry: selectedPantry.map((p) => ({
               id: p.id,
               name: p.name,
@@ -232,9 +246,61 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           savePersistedState(next);
           return next;
         });
+
+        for (let i = 0; i < totalRecipesToGenerate; i++) {
+          const recipe = await fetchRecipeFromGroqOnce(
+            apiKey,
+            {
+              pantryLines,
+              willingToShop,
+              regionLabel: state.shoppingLocationLabel,
+              previousRecipeTitles,
+              previousRecipeHints,
+            },
+            { generationIndex: i, totalRecipesToGenerate },
+          );
+
+          setState((prev) => {
+            const nextState = appendGeneratedRecipesBatch(prev, {
+              recipes: [recipe],
+              selectedPantry: selectedPantry.map((p) => ({
+                id: p.id,
+                name: p.name,
+              })),
+              willingToShop,
+            });
+            savePersistedState(nextState);
+            return nextState;
+          });
+
+          setPendingGeneratedRecipeSlots(Math.max(0, totalRecipesToGenerate - (i + 1)));
+
+          previousRecipeTitles.push(recipe.title);
+          const firstFlavorNote = recipe.ingredientsOnHand
+            ?.map((x) => x.flavorNote?.trim())
+            .find((x) => !!x);
+          previousRecipeHints.push({
+            title: recipe.title,
+            tag: recipe.tag?.trim() || undefined,
+            equipmentNote: recipe.equipmentNote?.trim() || undefined,
+            flavorNote: firstFlavorNote || recipe.nutritionNote?.trim() || undefined,
+          });
+        }
         return null;
       } catch (e) {
-        return e instanceof Error ? e.message : "Unbekannter Fehler.";
+        const msg = e instanceof Error ? e.message : "Unbekannter Fehler.";
+        // Groq 429 / TPM: message often includes "Please try again in 4.72 seconds" (or …ms / …s).
+        const isRateLimit =
+          /Rate limit reached/i.test(msg) ||
+          /\b429\b/.test(msg) ||
+          /try again in\s+[\d.]+/i.test(msg);
+        if (isRateLimit) {
+          recordRateLimitCooldown(Date.now(), msg);
+        }
+        return msg;
+      } finally {
+        setIsGeneratingRecipes(false);
+        setPendingGeneratedRecipeSlots(0);
       }
     },
     [
@@ -261,6 +327,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppDataContextValue>(
     () => ({
       state,
+      isGeneratingRecipes,
+      pendingGeneratedRecipeSlots,
       addPantryItem,
       removePantryItem,
       updatePantryItem,
@@ -270,10 +338,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       generateRecipesFromPantrySelection,
       matchingRecipeCards,
       toggleBookmarkRecipe,
-      resetAppDataExceptGroqKey,
+      resetAppData,
     }),
     [
       state,
+      isGeneratingRecipes,
+      pendingGeneratedRecipeSlots,
       addPantryItem,
       removePantryItem,
       updatePantryItem,
@@ -283,7 +353,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       generateRecipesFromPantrySelection,
       matchingRecipeCards,
       toggleBookmarkRecipe,
-      resetAppDataExceptGroqKey,
+      resetAppData,
     ],
   );
 

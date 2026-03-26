@@ -16,13 +16,12 @@ export type GeneratedRecipesPayload = {
   willingToShop: boolean;
 };
 
-/** Pure state transition: prune non-bookmarked recipes, then append generated recipes and prepend their ids to `zutatenScreenRecipeOrder`. */
-export function applyGeneratedRecipesBatch(
+function appendGeneratedRecipes(
   prev: AppState,
   payload: GeneratedRecipesPayload,
 ): AppState {
   const { recipes, selectedPantry, willingToShop } = payload;
-  let next: AppState = pruneNonBookmarkedRecipes(prev);
+  let next: AppState = prev;
   const selectedPantryIds = selectedPantry.map((x) => x.id);
   const selectedPantryNames = selectedPantry.map((x) => x.name);
   const newIds: string[] = [];
@@ -47,7 +46,7 @@ export function applyGeneratedRecipesBatch(
         [id]: [...selectedPantryIds],
       },
       recipeRequiredPantryNames: {
-        ...(next.recipeRequiredPantryNames ?? {}),
+        ...next.recipeRequiredPantryNames,
         [id]: [...selectedPantryNames],
       },
       recipeCardExtras: {
@@ -59,4 +58,20 @@ export function applyGeneratedRecipesBatch(
 
   next.zutatenScreenRecipeOrder = [...newIds, ...next.zutatenScreenRecipeOrder];
   return next;
+}
+
+/** Pure state transition: prune non-bookmarked recipes, then append generated recipes and prepend their ids to `zutatenScreenRecipeOrder`. */
+export function applyGeneratedRecipesBatch(
+  prev: AppState,
+  payload: GeneratedRecipesPayload,
+): AppState {
+  return appendGeneratedRecipes(pruneNonBookmarkedRecipes(prev), payload);
+}
+
+/** Append generated recipes without pruning; used for progressive in-flight insertion. */
+export function appendGeneratedRecipesBatch(
+  prev: AppState,
+  payload: GeneratedRecipesPayload,
+): AppState {
+  return appendGeneratedRecipes(prev, payload);
 }

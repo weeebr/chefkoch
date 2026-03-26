@@ -25,7 +25,7 @@ export function pruneNonBookmarkedRecipes(state: AppState): AppState {
   }
 
   const recipeRequiredPantryNames: AppState["recipeRequiredPantryNames"] = {};
-  for (const [id, names] of Object.entries(state.recipeRequiredPantryNames ?? {})) {
+  for (const [id, names] of Object.entries(state.recipeRequiredPantryNames)) {
     if (keep.has(id)) recipeRequiredPantryNames[id] = names;
   }
 

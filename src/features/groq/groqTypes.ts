@@ -11,6 +11,21 @@ export type RecipeGenerationInput = {
   willingToShop: boolean;
   /** Region / Ort für Einkaufszutaten und Verfügbarkeit (`AKTUELLER_STANDORT` in der Nutzer-JSON). */
   regionLabel: string;
+  /**
+   * When generating multiple distinct recipes sequentially, previous recipe titles
+   * are passed so the model can avoid similarity.
+   */
+  previousRecipeTitles?: string[];
+  /**
+   * Minimal profile context from prior generated recipes to encourage distinctness
+   * without passing full prior recipe bodies.
+   */
+  previousRecipeHints?: Array<{
+    title: string;
+    tag?: string;
+    equipmentNote?: string;
+    flavorNote?: string;
+  }>;
 };
 
 export type GroqIngredientLine = {
@@ -36,8 +51,6 @@ export type GroqRecipeJson = {
   /** Draft format: getrennt vorhanden / Einkauf */
   ingredientsOnHand?: GroqIngredientLine[];
   ingredientsShopping?: GroqIngredientLine[];
-  /** Legacy flat list */
-  ingredients?: GroqIngredientLine[];
   steps?: GroqStepLine[];
   /** Draft: Abwasch-Tipp (displayed as optional note, not a step) */
   dishwasherTip?: string;
@@ -56,13 +69,9 @@ export type GroqRecipeJson = {
   nutritionNote?: string;
 };
 
-/** One cooking step; model may use alternate keys for the main text. */
+/** One cooking step in schema-validated response format. */
 export type GroqStepLine = {
-  order?: number;
-  title?: string;
-  body?: string;
-  instruction?: string;
-  description?: string;
-  text?: string;
-  content?: string;
+  order: number;
+  title: string;
+  body: string;
 };

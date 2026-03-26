@@ -5,10 +5,9 @@ export type {
   RecipeGenerationPantryLine,
 } from "./groqTypes";
 export {
-  GROQ_RECIPE_BATCH_COUNT,
   GROQ_RECIPES_PER_BATCH,
 } from "./groqConstants";
-export { fetchRecipesFromGroq } from "./groqClient";
+export { fetchRecipeFromGroqOnce } from "./groqClient";
 export {
   ingredientComponentMatchesSelection,
   normalizeGroqRecipeForPolicy,
@@ -20,4 +19,7 @@ export {
   resolveRecipeTimes,
 } from "./groqMap";
 export type { GeneratedRecipesPayload } from "./mergeGeneratedRecipes";
-export { applyGeneratedRecipesBatch } from "./mergeGeneratedRecipes";
+export {
+  applyGeneratedRecipesBatch,
+  appendGeneratedRecipesBatch,
+} from "./mergeGeneratedRecipes";

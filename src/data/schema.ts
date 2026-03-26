@@ -22,7 +22,7 @@ export interface AppState {
    * Used to match again after pantry rows were recreated (new UUIDs, same ingredients).
    */
   recipeRequiredPantryNames: Record<string, string[]>;
-  /** User Groq API key for recipe generation; stored plain in localStorage. */
+  /** User Groq API key for generation requests (stored locally in this browser). */
   groqApiKey: string;
   /** Region / town for shopping hints when generating with “Auch einkaufen” (sent as `AKTUELLER_STANDORT` to Groq). */
   shoppingLocationLabel: string;

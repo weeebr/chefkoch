@@ -73,7 +73,7 @@ function ensureAllRequiredInIngredientsOnHand(
 
 /**
  * When the user did not opt in to shopping: strip shopping-only fields, drop
- * `ingredientsOnHand` / legacy `ingredients` lines that do not match selected chips.
+ * `ingredientsOnHand` lines that do not match selected chips.
  */
 export function normalizeGroqRecipeForPolicy(
   j: GroqRecipeJson,
@@ -82,9 +82,7 @@ export function normalizeGroqRecipeForPolicy(
 ): GroqRecipeJson {
   const requiredNames = allowedPantryNames;
 
-  // Prefer ingredientsOnHand, but fall back to legacy flat `ingredients`.
-  const onHandBase = Array.isArray(j.ingredientsOnHand) && j.ingredientsOnHand.length > 0 ? j.ingredientsOnHand : j.ingredients;
-  const filteredOnHand = filterIngredientsBySelection(onHandBase, requiredNames);
+  const filteredOnHand = filterIngredientsBySelection(j.ingredientsOnHand, requiredNames);
   const ensuredOnHand = ensureAllRequiredInIngredientsOnHand(filteredOnHand, requiredNames);
 
   if (willingToShop) {

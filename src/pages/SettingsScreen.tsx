@@ -215,7 +215,7 @@ export function SettingsScreen() {
     updatePantryItem,
     setGroqApiKey,
     setShoppingLocationLabel,
-    resetAppDataExceptGroqKey,
+    resetAppData,
   } = useAppData();
   const pantryNewestFirst = useMemo(
     () =>
@@ -223,7 +223,7 @@ export function SettingsScreen() {
     [state.pantry],
   );
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<IconCategory>("Obst & Gemüse");
+  const [category, setCategory] = useState<IconCategory>("Kühlschrank");
   const [status, setStatus] = useState<PantryIngredient["status"]>("raw");
   const [editingPantryId, setEditingPantryId] = useState<string | null>(null);
 
@@ -376,12 +376,12 @@ export function SettingsScreen() {
               onClick={() => {
                 if (
                   !window.confirm(
-                    "Alle lokalen App-Daten löschen? Der Groq-Schlüssel bleibt. Dies kann nicht rückgängig gemacht werden.",
+                    "Alle lokalen App-Daten löschen? Dies kann nicht rückgängig gemacht werden.",
                   )
                 ) {
                   return;
                 }
-                resetAppDataExceptGroqKey();
+                resetAppData();
               }}
               className="flex w-full items-center justify-center gap-2 rounded-full border border-error/35 bg-error/10 px-6 py-3 text-sm font-bold text-error transition-colors active:bg-error/15 active:scale-[0.99]"
             >
@@ -428,28 +428,20 @@ export function SettingsScreen() {
               htmlFor="groq-api-key"
               className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant"
             >
-              API-Schlüssel (lokal, unverschlüsselt)
+              API-Schlüssel
             </label>
             <input
               id="groq-api-key"
               className={fieldClass}
-              type="text"
+              type="password"
               autoComplete="off"
-              placeholder="gsk_…"
+              placeholder="gsk_..."
               value={state.groqApiKey}
               onChange={(e) => setGroqApiKey(e.target.value)}
             />
-            <p className="text-xs text-on-surface-variant/80">
-              Für „Neue Rezepte generieren“ auf Zutaten. Schlüssel von{" "}
-              <a
-                href="https://console.groq.com/"
-                className="text-primary underline underline-offset-2"
-                target="_blank"
-                rel="noreferrer"
-              >
-                console.groq.com
-              </a>
-              .
+            <p className="text-sm leading-relaxed text-on-surface-variant/90">
+              Dieser Schlüssel wird lokal in deinem Browser gespeichert und für
+              jede Rezept-Generierung verwendet.
             </p>
           </div>
         </div>

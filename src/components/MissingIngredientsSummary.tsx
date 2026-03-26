@@ -20,6 +20,8 @@ function buildCandidate(names: string[], shownCount: number): string {
 function fitMissingText(names: string[], maxWidth: number, font: string): string {
   if (names.length === 0) return "";
   if (maxWidth <= 0) return buildCandidate(names, 1);
+  const safeWidth = Math.max(0, maxWidth - 12);
+  if (safeWidth <= 0) return buildCandidate(names, 1);
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -28,7 +30,7 @@ function fitMissingText(names: string[], maxWidth: number, font: string): string
 
   for (let shownCount = names.length; shownCount >= 1; shownCount--) {
     const candidate = buildCandidate(names, shownCount);
-    if (ctx.measureText(candidate).width <= maxWidth) return candidate;
+    if (ctx.measureText(candidate).width <= safeWidth) return candidate;
   }
   return buildCandidate(names, 1);
 }
@@ -62,14 +64,14 @@ export function MissingIngredientsSummary({
   }, [sanitized]);
 
   return (
-    <span className="flex min-w-0 items-center gap-x-2 overflow-hidden">
+    <span className="flex min-w-0 flex-1 items-center gap-x-2 overflow-hidden">
       <MaterialIcon
         name="shopping_cart"
         className="shrink-0 text-[14px] text-primary-dim"
       />
       <span
         ref={textRef}
-        className={`truncate text-xs font-bold uppercase tracking-tighter text-primary-dim ${textClassName}`.trim()}
+        className={`min-w-0 flex-1 overflow-hidden whitespace-nowrap text-xs font-bold uppercase tracking-tighter text-primary-dim ${textClassName}`.trim()}
       >
         {fitted}
       </span>

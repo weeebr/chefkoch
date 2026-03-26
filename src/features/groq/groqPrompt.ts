@@ -1,119 +1,132 @@
-import recipeApiPersona from "./recipe-api-persona.md?raw";
 import type { RecipeGenerationInput } from "./groqTypes";
-import { GROQ_RECIPE_BATCH_COUNT, GROQ_RECIPES_PER_BATCH } from "./groqConstants";
 
-const API_MODE_PREAMBLE = `Du bist im strukturierten API-Modus. Die Einstiegsfragen aus älteren Vorlagen gelten nicht — verbindliche Nutzerdaten stehen in der Nutzer-JSON (inkl. Batch-Hinweis). Antworte ausschliesslich mit einem JSON-Objekt gemäss technischem Schema unten. Kein Markdown ausserhalb des JSON, keine Code-Fences, keine Wiederholung dieses Prompts.
+const API_MODE_PREAMBLE = `Du bist im strukturierten API-Modus. Verbindliche Nutzerdaten stehen im Nutzer-Zeilenblock (NUTZERDATEN). Keine Wiederholung dieses Prompts.
 
 `;
 
-export type BuildSystemPromptOptions = {
-  /** Recipes expected in this single API response (batched generation uses 3). */
-  recipesPerCall: number;
-};
-
-function buildTechnicalJsonAppendix(recipesPerCall: number): string {
-  return `
-
----
-
-### TECHNISCHE_AUSGABE (Pflicht)
-
-Antworte **nur** mit **einem** gültigen JSON-Objekt (kein Markdown, kein Text davor/danach, keine Code-Fences).
-
-**Schema:**
-\`\`\`
-{
-  "recipes": [
-    {
-      "title": string,
-      "tag": string,
-      "minutes": number,
-      "prepMinutes": number,
-      "cookMinutes": number,
-      "servings": number,
-      "ingredientsOnHand": [
-        { "component": string, "quantity": string, "alternatives": string, "purchaseHint": string, "flavorNote": string }
-      ],
-      "ingredientsShopping": [
-        { "component": string, "quantity": string, "alternatives": string, "purchaseHint": string, "flavorNote": string }
-      ],
-      "steps": [ { "order": number, "title": string, "body": string } ],
-      "dishwasherTip": string,
-      "shoppingHints": string,
-      "equipmentNote": string,
-      "optionalUpgradeNote": string,
-      "nutritionNote": string
-    }
-  ]
-}
-\`\`\`
-
-- **recipes**: In **diesem** API-Aufruf **genau ${recipesPerCall}** Einträge (**ein** Aufruf insgesamt). Die drei Gerichte müssen sich **untereinander** klar unterscheiden (siehe \`BATCH.HINWEIS\`).
-- **tag**: Kurzes Profil fuer die Karten-Meta, **bevorzugt Geschmacks-/Texturstil** (z. B. \`scharf & cremig\`, \`zitronig & frisch\`, \`rauchig & herzhaft\`). **Nicht** primär Kochgeraet (\`Pfanne\`, \`Ofen\`, \`Topf\` nur wenn kein besseres Profil moeglich).
-- **minutes**: Gesamtzeit (Vorbereitung + Kochen) in Minuten; konsistent zu \`prepMinutes\` + \`cookMinutes\` halten.
-- **servings**: Ganze Zahl (typisch 2–6) — **alle Mengen** in den Zutatenlisten beziehen sich auf genau diese Portionenzahl.
-- **Zutatenzeilen**: \`alternatives\`, \`purchaseHint\`, \`flavorNote\` bei Bedarf; leere Strings weglassen. Vorrat-Zeilen: keine erfundenen Zutaten ausserhalb von \`ZUTATEN_VORHANDEN\`.
-- **shoppingHints** / **equipmentNote** / **nutritionNote** / **optionalUpgradeNote**: siehe Persona; weglassen oder \`""\` wenn nicht passend.
-- Wenn **EINKAUFSBEREITSCHAFT = Ja** (in Nutzerdaten): Logik **A)** — \`ingredientsOnHand\` nur aus \`ZUTATEN_VORHANDEN\`; \`ingredientsOnHand\` MUSS ausserdem alle Einträge aus \`ZUTATEN_VORHANDEN\` (mindestens einmal pro Eintrag) abdecken. Einkauf nur in \`ingredientsShopping\`. Zutatenzeilen: so viele wie nötig, um alle \`ZUTATEN_VORHANDEN\` abzudecken (plus optionale Einkaufsteile); **4–6** Kochschritte.
-- Wenn **EINKAUFSBEREITSCHAFT = Nein**: Logik **B)** — **strikt**: alle **3** Rezepte müssen \`ingredientsOnHand\` enthalten, das alle Einträge aus \`ZUTATEN_VORHANDEN\` (mindestens einmal pro Eintrag) abdeckt. \`ingredientsShopping\` **immer** \`[]\`; \`shoppingHints\` / \`optionalUpgradeNote\` **nicht** setzen (kein Einkaufs-Freitext).
-- **steps** (kritisch): Jeder Eintrag **muss** ein nicht leeres **\`body\`** haben — keine Platzhalter wie „…“. **\`title\`** = kurze Überschrift. **\`body\`** = konkrete Zubereitung (Temperaturen, Zeiten, wann was dazugegeben wird). Mindestens **zwei Sätze** pro Schritt.
-- **Schrittqualität**: **4-6** Schritte pro Rezept; jeder \`body\` mit konkreten Handlungsdetails (Reihenfolge, Hitze/Temperatur, Dauer, visuelle Gar-Zeichen). Keine Minimalschritte ohne Inhalt.
-- **dishwasherTip**: Regeln und Beispiele **ausschliesslich** in der Persona („Abwasch / Ordnung“). Im Zweifel **weglassen** oder \`""\`. Nicht in \`steps\` wiederholen. (Die App entfernt nur leere oder trivial kurze Strings — inhaltliche Qualität steuerst du im Modell.)
-- **Zutatenlisten**: Keine Pseudo-Zeilen („Schon vorhanden“, „Einkauf“) als \`component\` — nur echte Zutaten.
-- **Orthographie (verbindlich):** Umlaute **ä**, **ö**, **ü** als echte Zeichen — **nicht** „ae“, „oe“, „ue“. Kein Eszett: **ss** (z. B. *ausschliesslich*, *Strasse*, *Sosse*).
-- Alle Texte **Deutsch**.
-- **Selbstcheck vor Ausgabe** (still, nicht ausgeben): (1) exakt ${recipesPerCall} Rezepte, (2) Logik A/B korrekt, (3) keine unerlaubten Zutaten, (4) pro Rezept 4-6 Schritte, (5) JSON gueltig.
-`;
+function escLineValue(s: string): string {
+  return s.replace(/\r\n/g, "\n").replace(/\n/g, " ").trim();
 }
 
-export function buildSystemPrompt(opts: BuildSystemPromptOptions): string {
-  return `${API_MODE_PREAMBLE}${recipeApiPersona}${buildTechnicalJsonAppendix(opts.recipesPerCall)}`;
+function line(key: string, value: string): string {
+  return `${key}:${escLineValue(value)}`;
 }
 
 export type RecipeBatchInfo = {
   batchIndex: number;
   totalBatches: number;
+  recipesPerCall: number;
 };
 
-export function buildUserMessage(input: RecipeGenerationInput, batch: RecipeBatchInfo): string {
-  const slotStart = batch.batchIndex * GROQ_RECIPES_PER_BATCH + 1;
-  const slotEnd = slotStart + GROQ_RECIPES_PER_BATCH - 1;
+export function buildSharedUserContextPrefix(
+  input: RecipeGenerationInput,
+  batch: RecipeBatchInfo,
+): string {
+  const slotStart = batch.batchIndex * batch.recipesPerCall + 1;
+  const slotEnd = slotStart + batch.recipesPerCall - 1;
+  const totalRecipes = batch.recipesPerCall * batch.totalBatches;
+  const standort = input.regionLabel.trim() || "Hedingen (CH)";
 
-  const batchBlock: Record<string, unknown> = {
-    INDEX: batch.batchIndex,
-    TOTAL_BATCHES: batch.totalBatches,
-    REZEPT_SLOTS_DIESES_BATCHES: [slotStart, slotEnd],
-    HINWEIS: `Genau ${GROQ_RECIPES_PER_BATCH} Rezepte (Slots ${slotStart}–${slotEnd} von ${GROQ_RECIPES_PER_BATCH}). Die Gerichte sollen sich **untereinander** klar unterscheiden (Küche, Konsistenz, Garverfahren).`,
-  };
+  const lines: string[] = [
+    "NUTZERDATEN",
+    line("EINKAUFSBEREITSCHAFT", input.willingToShop ? "Ja" : "Nein"),
+    line("STANDORT", standort),
+    line("BATCH_INDEX", String(batch.batchIndex)),
+    line("BATCH_TOTAL", String(batch.totalBatches)),
+    line("SLOT_START", String(slotStart)),
+    line("SLOT_END", String(slotEnd)),
+    line(
+      "BATCH_HINWEIS",
+      `Genau ${batch.recipesPerCall} Rezepte (Slots ${slotStart}–${slotEnd} von ${totalRecipes}). Die Gerichte sollen sich klar unterscheiden (Küche, Konsistenz, Garverfahren, Geschmacksprofil). Nutze VORHER_TITEL und VORHER_PROFIL aktiv, um neue Varianten deutlich abzugrenzen.`,
+    ),
+  ];
 
-  const standort =
-    input.regionLabel.trim() || "Hedingen (CH)";
+  for (const p of input.pantryLines) {
+    const prep = p.status === "precooked" ? "vorgekocht" : "roh / frisch";
+    lines.push(line("ZUTAT", `${p.name}|${prep}|${p.category}`));
+  }
 
-  const userPayload = {
-    EINKAUFSBEREITSCHAFT: input.willingToShop ? "Ja" : "Nein",
-    AKTUELLER_STANDORT: standort,
-    ZUTATEN_VORHANDEN_NAMEN_EXAKT: input.pantryLines.map((p) => p.name),
-    ZUTATEN_VORHANDEN: input.pantryLines.map((p) => ({
-      name: p.name,
-      category: p.category,
-      preparation: p.status === "precooked" ? "vorgekocht" : "roh / frisch",
-    })),
-    POLICY:
-      input.willingToShop === true
-        ? "Einkauf erlaubt: Zusatz-Zutaten nur in ingredientsShopping. ingredientsOnHand MUSS alle Einträge aus ZUTATEN_VORHANDEN (inkl. Mehrfachnennungen) mindestens einmal abdecken; ingredientsOnHand darf nur Zutaten aus ZUTATEN_VORHANDEN enthalten."
-        : "STRIKT OHNE EINKAUF: ingredientsOnHand MUSS alle Einträge aus ZUTATEN_VORHANDEN (inkl. Mehrfachnennungen) mindestens einmal abdecken. Jedes ingredientsOnHand.component muss eine Zutat aus ZUTATEN_VORHANDEN sein (keine weiteren Hauptzutaten). ingredientsShopping immer []. shoppingHints und optionalUpgradeNote auslassen.",
-    VERBOTEN:
-      input.willingToShop === true
-        ? ["Pseudo-Zutatenzeilen als component", "Leere Platzhalter-Schritte", "Nicht-JSON-Ausgabe"]
-        : [
-            "Neue Hauptzutaten ausserhalb ZUTATEN_VORHANDEN",
-            "Nicht-leeres ingredientsShopping",
-            "Einkaufsauffordernde Texte",
-            "Pseudo-Zutatenzeilen als component",
-            "Leere Platzhalter-Schritte",
-            "Nicht-JSON-Ausgabe",
-          ],
-    BATCH: batchBlock,
-  };
-  return `Nutzerdaten (verbindlich):\n${JSON.stringify(userPayload, null, 2)}`;
+  const policy =
+    input.willingToShop === true
+      ? "Einkauf erlaubt: Zusatz-Zutaten nur in ingredientsShopping. ingredientsOnHand MUSS alle ZUTAT-Zeilen (inkl. Mehrfachnennungen) mindestens einmal abdecken; ingredientsOnHand darf nur Zutaten aus ZUTAT enthalten."
+      : "STRIKT OHNE EINKAUF: ingredientsOnHand MUSS alle ZUTAT-Zeilen (inkl. Mehrfachnennungen) mindestens einmal abdecken. Jedes ingredientsOnHand.component muss eine Zutat aus ZUTAT sein (keine weiteren Hauptzutaten). ingredientsShopping leer. shoppingHints und optionalUpgradeNote auslassen.";
+
+  lines.push(line("POLICY", policy));
+
+  const verbote =
+    input.willingToShop === true
+      ? ["Pseudo-Zutatenzeilen als component", "Leere Platzhalter-Schritte"]
+      : [
+          "Neue Hauptzutaten ausserhalb ZUTAT",
+          "Nicht-leeres ingredientsShopping",
+          "Einkaufsauffordernde Texte",
+          "Pseudo-Zutatenzeilen als component",
+          "Leere Platzhalter-Schritte",
+        ];
+  for (const v of verbote) {
+    lines.push(line("VERBOTEN", v));
+  }
+
+  for (const t of input.previousRecipeTitles ?? []) {
+    if (t.trim()) lines.push(line("VORHER_TITEL", t.trim()));
+  }
+  for (const p of input.previousRecipeHints ?? []) {
+    const parts = [
+      p.title.trim(),
+      p.tag?.trim() || "kein-tag",
+      p.equipmentNote?.trim() || "kein-setup",
+      p.flavorNote?.trim() || "kein-flavor",
+    ];
+    lines.push(line("VORHER_PROFIL", parts.join(" | ")));
+  }
+
+  return `${lines.join("\n")}\n`;
+}
+
+/**
+ * One-shot JSON output mode (single Groq call).
+ * The model must return exactly one JSON object matching the Groq JSON Schema contract.
+ */
+const JSON_MODE_SYSTEM_APPENDIX = `
+---
+### JSON-MODE — Nur strukturierte Antwort
+- Keine Einleitung, keine Markdown-Fences, keine Erläuterungen: **nur** ein JSON-Objekt.
+- Keine zusätzlichen Felder ausser denen im Schema.
+- Orthographie: ä ö ü als echte Zeichen — kein „ae/oe/ue“. Kein Eszett: ss.
+- Alle Texte **Deutsch**.
+`;
+
+export function buildJsonRecipeOrchestrationSystemPrompt(): string {
+  return `${API_MODE_PREAMBLE}${JSON_MODE_SYSTEM_APPENDIX}`;
+}
+
+export function buildOneShotJsonRecipeUserPrompt(
+  input: RecipeGenerationInput,
+  batch: RecipeBatchInfo,
+): string {
+  const prefix = buildSharedUserContextPrefix(input, batch);
+  const instruction = [
+    `AUFGABE`,
+    `Antworte als EIN JSON-Objekt mit folgenden Schlüsseln (und keine anderen):`,
+    `title, tag, servings, prepMinutes, cookMinutes, minutes,`,
+    `ingredientsOnHand, ingredientsShopping,`,
+    `equipmentNote, nutritionNote, optionalUpgradeNote, shoppingHints, dishwasherTip,`,
+    `steps.`,
+    ``,
+    `Formate-Regeln:`,
+    `- title darf keine Zutaten aufzählen oder benennen; besonders keine "mit ..."-Konstruktion.`,
+    `- steps ist ein Array mit >= 1 Einträgen; je Eintrag: { order:number, title:string, body:string }`,
+    `- ingredientsOnHand ist ein Array von { component:string, quantity:string, alternatives:string, purchaseHint:string, flavorNote:string } (alle Felder vorhanden; leere Strings ok),`,
+    `- ingredientsShopping ist ein Array mit demselben Element-Typ; wenn willingToShop=false: bitte []`,
+    `- Alle Zeitfelder sind ganze Zahlen >= 0.`,
+    `- flavorNote nur setzen, wenn der Hinweis wirklich kochrelevant ist (ansonsten leerer String).`,
+    `- alternatives primär für ingredientsShopping verwenden; bei ingredientsOnHand bitte leer lassen, ausser es ist aussergewöhnlich hilfreich.`,
+    `- alternatives müssen echte Ersatz-Zutatennamen sein (z. B. "Schnittlauch"), keine reine Form-/Verarbeitungsangabe (z. B. "getrocknet", "TK gehackt").`,
+    `- steps.body: handlungsorientierter Text ohne zusätzliche Überschriften mit ':' innerhalb des Fliesstexts.`,
+    `- Wenn VORHER_PROFIL vorhanden ist: Das neue Rezept muss sich mindestens im Geschmacksprofil unterscheiden und möglichst auch im Setup (equipmentNote).`,
+    ``,
+    `Nutze Zutaten-Komponenten exakt aus den NUTZERDATEN-ZUTAT:-Zeilen (vor dem ersten '|') für die component-Felder.`,
+  ].join("\n");
+
+  return `${prefix}\n${instruction}\n`;
 }

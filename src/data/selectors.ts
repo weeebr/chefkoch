@@ -57,7 +57,10 @@ export function selectMatchingRecipeCards(state: AppState): RecipeMatchCard[] {
   // Convert the matched rows into cards, carrying match info.
   const cards: RecipeMatchCard[] = [];
   for (const { row, match } of matchedRows) {
-    const extras = state.recipeCardExtras[row.id] ?? { tag: "—" };
+    const extras = state.recipeCardExtras[row.id];
+    if (!extras) {
+      throw new Error(`Invariant violated: missing recipeCardExtras entry for id "${row.id}"`);
+    }
     const missingIngredients = recipeMissingIngredients(row.id, state);
     cards.push({
       id: row.id,

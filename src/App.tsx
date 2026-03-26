@@ -3,6 +3,7 @@ import { AppShell } from "./components/layout/AppShell";
 import {
   ACTIVE_SCREEN_KEY,
   DETAIL_SCROLL_RESTORE_KEY,
+  ACTIVE_DETAIL_RECIPE_ID_KEY,
 } from "./config/storageKeys";
 import { useAppData } from "./data/AppDataContext";
 import type { ActiveScreen } from "./types";
@@ -10,6 +11,8 @@ import { IngredientsScreen } from "./pages/IngredientsScreen";
 import { RecipeDetailScreen } from "./pages/RecipeDetailScreen";
 import { RecipesScreen } from "./pages/RecipesScreen";
 import { SettingsScreen } from "./pages/SettingsScreen";
+
+const RECIPES_SCROLL_TARGET_KEY = "chefkoch:recipesScrollTarget";
 
 function readStoredScreen(): ActiveScreen {
   try {
@@ -23,13 +26,25 @@ function readStoredScreen(): ActiveScreen {
   return "ingredients";
 }
 
+function readStoredActiveDetailRecipeId(): string | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_DETAIL_RECIPE_ID_KEY);
+    if (raw && typeof raw === "string") return raw;
+  } catch {
+    /* private mode */
+  }
+  return null;
+}
+
 /**
  * Navigation chrome (active tab, optional recipe overlay id) is local React state + sessionStorage for tab.
  * Recipe/pantry data lives in AppDataContext + localStorage.
  */
 export function App() {
   const [screen, setScreen] = useState<ActiveScreen>(readStoredScreen);
-  const [recipeDetailId, setRecipeDetailId] = useState<string | null>(null);
+  const [recipeDetailId, setRecipeDetailId] = useState<string | null>(
+    () => readStoredActiveDetailRecipeId(),
+  );
   const { state } = useAppData();
 
   const clearDetailScrollRestore = () => {
@@ -66,6 +81,22 @@ export function App() {
     }
   };
 
+  const clearActiveDetailRecipeId = () => {
+    try {
+      localStorage.removeItem(ACTIVE_DETAIL_RECIPE_ID_KEY);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const saveActiveDetailRecipeId = (id: string) => {
+    try {
+      localStorage.setItem(ACTIVE_DETAIL_RECIPE_ID_KEY, id);
+    } catch {
+      /* ignore */
+    }
+  };
+
   useEffect(() => {
     // Persist the active tab even while RecipeDetail overlay is open.
     try {
@@ -79,6 +110,7 @@ export function App() {
     if (!recipeDetailId) return;
     if (!state.recipeDetails[recipeDetailId]) {
       setRecipeDetailId(null);
+      clearActiveDetailRecipeId();
     }
   }, [recipeDetailId, state.recipeDetails]);
 
@@ -102,22 +134,36 @@ export function App() {
     setScreen(next);
     setRecipeDetailId(null);
     clearDetailScrollRestore();
+    clearActiveDetailRecipeId();
   };
 
   return (
     <AppShell screen={screen} onNavigate={handleNavigate}>
       {!recipeDetailId && screen === "ingredients" && (
         <IngredientsScreen
+          onGoToRecipes={(target) => {
+            if (target === "saved") {
+              try {
+                localStorage.setItem(RECIPES_SCROLL_TARGET_KEY, "saved");
+              } catch {
+                /* ignore */
+              }
+            }
+            setScreen("recipes");
+          }}
           onOpenRecipe={(id) => {
             saveDetailScrollRestore(window.scrollY);
+            saveActiveDetailRecipeId(id);
             setRecipeDetailId(id);
           }}
         />
       )}
       {!recipeDetailId && screen === "recipes" && (
         <RecipesScreen
+          onGoToIngredients={() => setScreen("ingredients")}
           onOpenRecipe={(id) => {
             saveDetailScrollRestore(window.scrollY);
+            saveActiveDetailRecipeId(id);
             setRecipeDetailId(id);
           }}
         />
@@ -131,7 +177,10 @@ export function App() {
               ? "Zurück zu Zutaten"
               : "Zurück zu Rezepten"
           }
-          onBack={() => setRecipeDetailId(null)}
+          onBack={() => {
+            setRecipeDetailId(null);
+            clearActiveDetailRecipeId();
+          }}
         />
       )}
       {!recipeDetailId && screen === "settings" && <SettingsScreen />}

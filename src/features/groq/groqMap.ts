@@ -44,106 +44,123 @@ function isIngredientHeaderRow(component: string): boolean {
   );
 }
 
-function formatQuantityWithHintsFlat(r: GroqIngredientLine): string {
-  const q =
-    typeof r?.quantity === "string" && r.quantity.trim()
-      ? r.quantity.trim()
-      : "n. B.";
-  const bits: string[] = [];
-  if (typeof r.purchaseHint === "string" && r.purchaseHint.trim()) {
-    bits.push(r.purchaseHint.trim());
-  }
-  if (typeof r.flavorNote === "string" && r.flavorNote.trim()) {
-    bits.push(r.flavorNote.trim());
-  }
-  if (bits.length === 0) return q;
-  return `${q} · ${bits.join(" · ")}`;
+function quantityFromGroqLine(r: GroqIngredientLine): string {
+  if (typeof r?.quantity === "string" && r.quantity.trim()) return r.quantity.trim();
+  return "";
 }
 
-function mapIngredientsFlat(rows: GroqRecipeJson["ingredients"]): RecipeIngredientRow[] {
-  if (!Array.isArray(rows) || rows.length === 0) {
-    return [{ component: "—", quantity: "—" }];
-  }
-  const mapped = rows
-    .map((r, i) => ({
-      component:
-        typeof r?.component === "string" && r.component.trim()
-          ? r.component.trim()
-          : `Zutat ${i + 1}`,
-      quantity: formatQuantityWithHintsFlat(r),
-    }))
-    .filter((row) => !isIngredientHeaderRow(row.component));
-  return mapped.length > 0 ? mapped : [{ component: "—", quantity: "—" }];
+function flavorNoteFromGroqLine(r: GroqIngredientLine): string {
+  if (typeof r?.flavorNote === "string" && r.flavorNote.trim()) return r.flavorNote.trim();
+  return "";
 }
 
 function mapIngredientsFromGroq(j: GroqRecipeJson): RecipeIngredientRow[] {
   const onHand = j.ingredientsOnHand;
   const shop = j.ingredientsShopping;
 
-  if (
-    (Array.isArray(onHand) && onHand.length > 0) ||
-    (Array.isArray(shop) && shop.length > 0)
-  ) {
-    const rows: RecipeIngredientRow[] = [];
-    const formatQuantityWithHints = (r: GroqIngredientLine): string => {
-      const q =
-        typeof r?.quantity === "string" && r.quantity.trim()
-          ? r.quantity.trim()
-          : "—";
-      const bits: string[] = [];
-      if (typeof r.purchaseHint === "string" && r.purchaseHint.trim()) {
-        bits.push(r.purchaseHint.trim());
-      }
-      if (typeof r.flavorNote === "string" && r.flavorNote.trim()) {
-        bits.push(r.flavorNote.trim());
-      }
-      if (bits.length === 0) return q;
-      return `${q} · ${bits.join(" · ")}`;
-    };
+  const rows: RecipeIngredientRow[] = [];
 
-    const pushLine = (r: GroqIngredientLine) => {
-      const c =
-        typeof r?.component === "string" && r.component.trim()
-          ? r.component.trim()
-          : "—";
-      if (isIngredientHeaderRow(c)) return;
-      const alt =
-        typeof r?.alternatives === "string" && r.alternatives.trim()
-          ? ` (Alternativen: ${r.alternatives.trim()})`
-          : "";
-      rows.push({
-        component: `${c}${alt}`,
-        quantity: formatQuantityWithHints(r),
-      });
-    };
+  const pushLine = (r: GroqIngredientLine) => {
+    const c =
+      typeof r?.component === "string" && r.component.trim()
+        ? r.component.trim()
+        : "—";
+    if (isIngredientHeaderRow(c)) return;
+    rows.push({
+      component: c,
+      quantity: quantityFromGroqLine(r) || "—",
+    });
+  };
 
-    if (Array.isArray(onHand) && onHand.length > 0) {
-      for (const r of onHand) pushLine(r);
-    }
-    if (Array.isArray(shop) && shop.length > 0) {
-      for (const r of shop) pushLine(r);
-    }
-    if (rows.length > 0) return rows;
+  if (Array.isArray(onHand) && onHand.length > 0) {
+    for (const r of onHand) pushLine(r);
   }
-  return mapIngredientsFlat(j.ingredients);
+  if (Array.isArray(shop) && shop.length > 0) {
+    for (const r of shop) pushLine(r);
+  }
+  return rows.length > 0 ? rows : [{ component: "—", quantity: "—" }];
 }
 
-function stepInstructionText(r: GroqStepLine): string {
-  const o = r as Record<string, unknown>;
-  const keys: unknown[] = [
-    r.body,
-    r.instruction,
-    r.description,
-    r.text,
-    r.content,
-    o.detail,
-    o.details,
-    o.beschreibung,
-  ];
-  for (const p of keys) {
-    if (typeof p === "string" && p.trim().length > 0) return p.trim();
+function buildFlavorSummaryNote(j: GroqRecipeJson): string | undefined {
+  const notes: string[] = [];
+  const push = (n: unknown) => {
+    if (typeof n !== "string") return;
+    const trimmed = n.trim();
+    if (!trimmed) return;
+    const short = trimmed.split(/[.;,]/)[0]?.trim() ?? "";
+    if (!short || short.length > 60) return;
+    if (!notes.some((x) => x.toLowerCase() === short.toLowerCase())) notes.push(short);
+  };
+
+  for (const r of j.ingredientsOnHand ?? []) push(r?.flavorNote);
+  for (const r of j.ingredientsShopping ?? []) push(r?.flavorNote);
+
+  if (notes.length === 0) return undefined;
+  const top = notes.slice(0, 3);
+  if (top.length === 1) return `Geschmack: ${top[0]}.`;
+  if (top.length === 2) return `Geschmack: ${top[0]} und ${top[1]}.`;
+  return `Geschmack: ${top[0]}, ${top[1]} und ${top[2]}.`;
+}
+
+function buildShoppingAlternativesNote(j: GroqRecipeJson): string | undefined {
+  const entries: string[] = [];
+  for (const r of j.ingredientsShopping ?? []) {
+    const component =
+      typeof r?.component === "string" && r.component.trim() ? r.component.trim() : "";
+    const alternatives =
+      typeof r?.alternatives === "string" && r.alternatives.trim() ? r.alternatives.trim() : "";
+    if (!component || !alternatives) continue;
+    const cleanedAlternatives = sanitizeAlternativesText(alternatives);
+    if (!cleanedAlternatives) continue;
+    const value = `${component}: ${cleanedAlternatives}`;
+    if (!entries.some((x) => x.toLowerCase() === value.toLowerCase())) entries.push(value);
   }
-  return "";
+
+  if (entries.length === 0) return undefined;
+  return entries.slice(0, 6).join("\n");
+}
+
+function sanitizeAlternativesText(raw: string): string {
+  const parts = raw
+    .split(/,|\/|\boder\b/gi)
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+  const rejectedExact = new Set([
+    "getrocknet",
+    "trocken",
+    "tk",
+    "tiefkühl",
+    "frisch",
+    "gehackt",
+    "fein gehackt",
+    "grob gehackt",
+    "gemahlen",
+    "pulver",
+    "granulat",
+  ]);
+
+  const rejectedContains = [
+    /\b(vorgekocht|gekühlt|kalt|warm)\b/i,
+    /\b(tl|el|g|kg|ml|l|bund|stück|stk)\b/i,
+    /^\d+[.,]?\d*$/,
+  ];
+
+  const valid = parts.filter((part) => {
+    const p = part.toLowerCase();
+    if (p.length < 3) return false;
+    if (rejectedExact.has(p)) return false;
+    if (rejectedContains.some((rx) => rx.test(p))) return false;
+    // Require at least one letter and avoid plain preparation/style descriptors.
+    if (!/[a-zäöü]/i.test(p)) return false;
+    return true;
+  });
+
+  const deduped: string[] = [];
+  for (const v of valid) {
+    if (!deduped.some((x) => x.toLowerCase() === v.toLowerCase())) deduped.push(v);
+  }
+  return deduped.slice(0, 3).join(", ");
 }
 
 function mapSteps(rows: GroqRecipeJson["steps"]): RecipeMethodStep[] {
@@ -157,23 +174,11 @@ function mapSteps(rows: GroqRecipeJson["steps"]): RecipeMethodStep[] {
       },
     ];
   }
-  return rows.map((r, i) => {
-    const order =
-      typeof r?.order === "number" && !Number.isNaN(r.order) ? r.order : i + 1;
-    let title =
-      typeof r?.title === "string" && r.title.trim() ? r.title.trim() : `Schritt ${i + 1}`;
-    let body = stepInstructionText(r);
-
-    if (!body && title.length > 55) {
-      body = title;
-      title = `Schritt ${i + 1}`;
-    }
-    if (!body) body = "—";
-
+  return rows.map((r) => {
     return {
-      order,
-      title,
-      body,
+      order: r.order,
+      title: r.title.trim(),
+      body: r.body.trim(),
       accent: false,
     };
   });
@@ -202,10 +207,12 @@ export function groqJsonToRecipeDetail(recipeId: string, j: GroqRecipeJson): Rec
     typeof j.optionalUpgradeNote === "string" && j.optionalUpgradeNote.trim()
       ? j.optionalUpgradeNote.trim()
       : undefined;
-  const nutritionNote =
+  const nutritionFromModel =
     typeof j.nutritionNote === "string" && j.nutritionNote.trim()
       ? j.nutritionNote.trim()
       : undefined;
+  const flavorSummaryNote = buildFlavorSummaryNote(j);
+  const shoppingAlternativesNote = buildShoppingAlternativesNote(j);
 
   const basePortions =
     typeof j.servings === "number" && !Number.isNaN(j.servings) && j.servings > 0
@@ -214,9 +221,11 @@ export function groqJsonToRecipeDetail(recipeId: string, j: GroqRecipeJson): Rec
 
   const ingredients = mapIngredientsFromGroq(j);
 
+  const title = sanitizeRecipeTitle(j.title);
+
   return normalizeGroqRecipeDetail({
     id: recipeId,
-    title: j.title.trim(),
+    title,
     prepMinutes: prep,
     cookMinutes: cook,
     basePortions,
@@ -231,7 +240,9 @@ export function groqJsonToRecipeDetail(recipeId: string, j: GroqRecipeJson): Rec
     ...(shoppingHints ? { shoppingHints } : {}),
     ...(equipmentNote ? { equipmentNote } : {}),
     ...(optionalUpgradeNote ? { optionalUpgradeNote } : {}),
-    ...(nutritionNote ? { nutritionNote } : {}),
+    ...(nutritionFromModel ? { nutritionNote: nutritionFromModel } : {}),
+    ...(flavorSummaryNote ? { flavorSummaryNote } : {}),
+    ...(shoppingAlternativesNote ? { shoppingAlternativesNote } : {}),
     lastUpdatedLabel: "KI",
   });
 }
@@ -239,6 +250,7 @@ export function groqJsonToRecipeDetail(recipeId: string, j: GroqRecipeJson): Rec
 /** List row for storage; title is Swiss-normalized before persist. */
 export function groqJsonToListRow(recipeId: string, j: GroqRecipeJson): RecipeListRow {
   const { total } = resolveRecipeTimes(j);
+  const title = sanitizeRecipeTitle(j.title);
 
   const hasShopping =
     Array.isArray(j.ingredientsShopping) &&
@@ -248,10 +260,19 @@ export function groqJsonToListRow(recipeId: string, j: GroqRecipeJson): RecipeLi
 
   return normalizeGroqListRow({
     id: recipeId,
-    title: j.title.trim(),
+    title,
     status: hasShopping ? "shopping" : "pantry",
     minutes: total,
   });
+}
+
+function sanitizeRecipeTitle(rawTitle: unknown): string {
+  const base = typeof rawTitle === "string" ? rawTitle.trim() : "";
+  if (!base) return "Rezept";
+  // Remove ingredient-style tails like " ... mit Brokkoli".
+  const withoutMitTail = base.replace(/\s+mit\s+.+$/i, "");
+  const cleaned = withoutMitTail.replace(/\s{2,}/g, " ").trim().replace(/[-,:;]+$/g, "");
+  return cleaned || "Rezept";
 }
 
 function isGenericCookingTag(tag: string): boolean {
@@ -270,9 +291,12 @@ function summarizeFlavorTagFromIngredients(j: GroqRecipeJson): string {
     if (!short || short.length > 24) return;
     if (!notes.some((x) => x.toLowerCase() === short.toLowerCase())) notes.push(short);
   };
-  for (const r of j.ingredientsOnHand ?? []) pushNote(r?.flavorNote);
-  for (const r of j.ingredientsShopping ?? []) pushNote(r?.flavorNote);
-  for (const r of j.ingredients ?? []) pushNote(r?.flavorNote);
+  for (const r of j.ingredientsOnHand ?? []) {
+    pushNote(r?.flavorNote);
+  }
+  for (const r of j.ingredientsShopping ?? []) {
+    pushNote(r?.flavorNote);
+  }
 
   if (notes.length >= 2) return `${notes[0]} & ${notes[1]}`;
   if (notes.length === 1) return notes[0];

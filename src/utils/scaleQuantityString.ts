@@ -3,7 +3,6 @@
  * Non-numeric lines (—, …) are returned unchanged.
  */
 
-// Keep backwards compatibility with previously persisted "n. B." placeholders.
 const NON_SCALABLE = /^(n\.\s*b\.|n\.b\.|–|—|-|…|\.\.\.)$/i;
 const UNICODE_FRACTIONS: Record<string, number> = {
   "¼": 0.25,

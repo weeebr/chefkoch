@@ -4,23 +4,9 @@ export type IngredientStatus = "precooked" | "raw";
 
 /** Icon / category groups for ingredients (German UI). */
 export const ICON_CATEGORIES = [
-  "Obst & Gemüse",
-  "Kräuter & Blattgemüse",
-  "Pilze",
-  "Hülsenfrüchte & Nüsse",
-  "Getreide, Reis & Teigwaren",
-  "Gewürze & Würzmittel",
-  "Milchprodukte & Käse",
-  "Eier",
-  "Fleisch & Wurst",
-  "Geflügel",
-  "Fisch & Meeresfrüchte",
-  "Öle, Essig & Fette",
-  "Süssmittel & Backen",
-  "Konserven & Vorratskammer",
+  "Kühlschrank",
+  "Vorratsschrank",
   "Tiefkühl",
-  "Getränke",
-  "Sonstiges",
 ] as const;
 
 export type IconCategory = (typeof ICON_CATEGORIES)[number];
@@ -110,5 +96,9 @@ export interface RecipeDetail {
   optionalUpgradeNote?: string;
   /** Short balance / lifestyle line. */
   nutritionNote?: string;
+  /** Optional concise flavor summary derived from ingredient flavor hints. */
+  flavorSummaryNote?: string;
+  /** Optional shopping-only summary of useful ingredient substitutions. */
+  shoppingAlternativesNote?: string;
   lastUpdatedLabel: string;
 }

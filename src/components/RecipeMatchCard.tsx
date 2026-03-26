@@ -32,7 +32,7 @@ export function RecipeMatchCard({
 }: RecipeMatchCardProps) {
   const accentTextClass = isFullMatch ? "text-secondary-dim" : "text-primary-dim";
   const accentBgClass = isFullMatch
-    ? "active:bg-secondary-fixed-dim/30"
+    ? "active:bg-secondary-lighter/30"
     : "active:bg-primary-container/30";
   const chevronClass = isFullMatch
     ? "shrink-0 text-secondary-dim/70"
@@ -71,11 +71,11 @@ export function RecipeMatchCard({
       className={[
         "flex items-stretch justify-between rounded-2xl border transition-colors",
         bookmarked && isFullMatch
-          ? "border-secondary/45 bg-secondary-fixed-dim/30"
+          ? "border-secondary/45 bg-secondary-lighter/30"
           : bookmarked
             ? "border-primary/45 bg-primary-container/40"
             : isFullMatch
-              ? "border-secondary/35 bg-secondary-fixed-dim/5"
+              ? "border-secondary/35 bg-secondary-lighter/5"
               : "border-primary/30 bg-primary-container/15",
       ].join(" ")}
     >

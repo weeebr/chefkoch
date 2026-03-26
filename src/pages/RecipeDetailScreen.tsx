@@ -46,6 +46,7 @@ export function RecipeDetailScreen({
     }
     return d;
   }, [recipeId, state.recipeDetails]);
+  const detailTag = state.recipeCardExtras[recipeId]?.tag?.trim() || "";
 
   const {
     setScalingId,
@@ -58,6 +59,22 @@ export function RecipeDetailScreen({
     setPortionsFromInput,
     setPercentFromInput,
   } = useRecipeScaling(detail, recipeId);
+  const alternativesByIngredient = useMemo(() => {
+    const out = new Map<string, string>();
+    const raw = detail.shoppingAlternativesNote;
+    if (!raw) return out;
+    for (const line of raw.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const idx = trimmed.indexOf(":");
+      if (idx < 1) continue;
+      const ingredient = trimmed.slice(0, idx).trim();
+      const alternatives = trimmed.slice(idx + 1).trim();
+      if (!ingredient || !alternatives) continue;
+      out.set(normalizeIngredientLabel(ingredient), alternatives);
+    }
+    return out;
+  }, [detail.shoppingAlternativesNote]);
 
   const [shoppingDisplayIngredients, selectedDisplayIngredients] = useMemo(() => {
     // In shopping mode, the "Einkaufen" list should reflect what the user does
@@ -93,6 +110,11 @@ export function RecipeDetailScreen({
 
     return [shopping, selected] as const;
   }, [detail.ingredients, displayIngredients, state.pantry, state.selectedPantryIds]);
+  const isFullMatch = shoppingDisplayIngredients.length === 0;
+  const accentTextClass = isFullMatch ? "text-secondary-dim" : "text-primary-dim";
+  const accentBgClass = isFullMatch
+    ? "active:bg-secondary-lighter/30"
+    : "active:bg-primary-container/30";
 
   const scaledSteps = useMemo(() => {
     return detail.steps.map((s) => ({
@@ -108,24 +130,31 @@ export function RecipeDetailScreen({
         <button
           type="button"
           onClick={onBack}
-          className="mb-4 inline-flex min-h-[48px] w-full max-w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-on-surface-variant transition-colors active:scale-[0.98] active:bg-surface-container-low active:text-primary"
+          className="mb-4 inline-flex min-h-[48px] w-full max-w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-on-surface-variant transition-colors active:scale-[0.98] active:bg-surface-container-low active:text-on-surface"
           aria-label={backLabel}
         >
           <MaterialIcon
             name="arrow_back"
-            className="shrink-0 text-2xl text-primary"
+            className="shrink-0 text-2xl text-on-surface-variant"
           />
           <span className="font-label text-sm font-semibold uppercase tracking-wide">
             {backLabel}
           </span>
         </button>
         <div className="mb-6 flex items-start gap-3">
-          <h2 className={`min-w-0 flex-1 ${SCREEN_HEADING_CLASS}`}>
-            {detail.title}
-          </h2>
+          <div className="min-w-0 flex-1">
+            <h2 className={SCREEN_HEADING_CLASS}>{detail.title}</h2>
+            {detailTag ? (
+              <p
+                className={`mt-1 font-label text-[11px] font-semibold uppercase tracking-[0.12em] ${accentTextClass}`}
+              >
+                {detailTag}
+              </p>
+            ) : null}
+          </div>
           <button
             type="button"
-            className="shrink-0 rounded-xl p-2 text-primary transition-colors active:bg-surface-container-high"
+            className={`shrink-0 rounded-xl p-2 transition-colors ${accentTextClass} ${accentBgClass}`}
             onClick={toggleBookmark}
             aria-label={bookmarkAriaLabel}
             aria-pressed={bookmarked}
@@ -203,18 +232,6 @@ export function RecipeDetailScreen({
         onPercentInput={setPercentFromInput}
       />
 
-      {detail.optionalUpgradeNote ? (
-        <section
-          className="mb-6 rounded-xl border border-secondary/25 bg-secondary/5 px-4 py-3"
-          aria-label="Optional mit Einkauf"
-        >
-          <p className="mb-1 font-label text-[10px] font-bold uppercase tracking-widest text-on-secondary/90">
-            Ohne Einkauf möglich
-          </p>
-          <p className="font-body text-sm leading-relaxed text-on-surface">{detail.optionalUpgradeNote}</p>
-        </section>
-      ) : null}
-
       <section className="mb-12">
         {shoppingDisplayIngredients.length > 0 ? (
           <h3 className="mb-6 flex items-center gap-2 font-headline text-xl font-bold text-primary-dim">
@@ -222,7 +239,6 @@ export function RecipeDetailScreen({
             Einkaufen
           </h3>
         ) : null}
-
         {shoppingDisplayIngredients.length > 0 ? (
           <div
             className={`mb-4 overflow-hidden ${ingredientShoppingWarmPanelClass}`}
@@ -230,10 +246,13 @@ export function RecipeDetailScreen({
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className={ingredientShoppingTableHeaderRowClass}>
-                  <th className="px-6 py-4 font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                    Zutat
+                  <th className="px-6 py-4 font-label text-[10px] font-bold uppercase tracking-widest text-on-surface">
+                    <span>Zutat</span>{" "}
+                    <span className="font-body text-xs font-normal normal-case tracking-normal text-on-surface-variant/80">
+                      {"→"} Alternative
+                    </span>
                   </th>
-                  <th className="px-6 py-4 text-right font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                  <th className="px-6 py-4 text-right font-label text-[10px] font-bold uppercase tracking-widest text-on-surface">
                     {resolvedMode === "percent" ? "Anteil" : "Menge"}
                   </th>
                 </tr>
@@ -246,8 +265,26 @@ export function RecipeDetailScreen({
                     key={`${row.component}-shopping-${i}`}
                     className="even:bg-primary/5"
                   >
-                    <td className="px-6 py-4 font-body text-sm font-medium text-on-surface">
-                      {row.component}
+                    <td className="px-6 py-4 text-sm text-on-surface">
+                      {(() => {
+                        const key = normalizeIngredientLabel(row.component);
+                        const alt = alternativesByIngredient.get(key);
+                        if (!alt) {
+                          return (
+                            <p className="font-headline text-sm font-bold text-on-surface">
+                              {row.component}
+                            </p>
+                          );
+                        }
+                        return (
+                          <p className="font-headline text-sm font-bold text-on-surface">
+                            {row.component}{" "}
+                            <span className="font-body text-xs font-normal text-on-surface-variant/80">
+                              {"→"} {alt}
+                            </span>
+                          </p>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-right font-headline text-sm font-bold text-on-surface">
                       {row.quantity}
@@ -271,10 +308,10 @@ export function RecipeDetailScreen({
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className={ingredientTableHeaderRowClass}>
-                  <th className="px-6 py-4 font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                  <th className="px-6 py-4 font-label text-[10px] font-bold uppercase tracking-widest text-on-surface">
                     Zutat
                   </th>
-                  <th className="px-6 py-4 text-right font-label text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                  <th className="px-6 py-4 text-right font-label text-[10px] font-bold uppercase tracking-widest text-on-surface">
                     {resolvedMode === "percent" ? "Anteil" : "Menge"}
                   </th>
                 </tr>
@@ -282,8 +319,10 @@ export function RecipeDetailScreen({
               <tbody className="divide-y divide-secondary/10 bg-surface-container-lowest/90">
                 {selectedDisplayIngredients.map((row, i) => (
                   <tr key={`${row.component}-selected-${i}`} className="even:bg-secondary/5">
-                    <td className="px-6 py-4 font-body text-sm font-medium text-on-surface">
-                      {row.component}
+                    <td className="px-6 py-4 text-sm text-on-surface">
+                      <p className="font-headline text-sm font-bold text-on-surface">
+                        {row.component}
+                      </p>
                     </td>
                     <td className="px-6 py-4 text-right font-headline text-sm font-bold text-on-surface">
                       {row.quantity}

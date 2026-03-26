@@ -1,12 +1,6 @@
 import { APP_STATE_KEY } from "../config/storageKeys";
 import { normalizeSwissGroqText } from "../features/groq/swissDisplayText";
-import {
-  ICON_CATEGORIES,
-  type IconCategory,
-  type PantryIngredient,
-  type RecipeDetail,
-} from "../types";
-import { categoryFromLegacyMaterialIcon } from "./iconFromCategory";
+import { ICON_CATEGORIES } from "../types";
 import { cloneDefaultState, defaultAppState } from "./seed/defaultState";
 import type { AppState } from "./schema";
 
@@ -14,163 +8,49 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-function normalizePantryRow(p: unknown, index: number): PantryIngredient {
-  if (!isRecord(p)) {
-    return {
-      id: "",
-      name: "",
-      category: "Sonstiges",
-      status: "raw",
-      addedAt: index,
-    };
-  }
-  const id = typeof p.id === "string" ? p.id : "";
-  const name = typeof p.name === "string" ? p.name : "";
-  const status =
-    p.status === "precooked" || p.status === "raw" ? p.status : "raw";
-  const addedAt =
-    typeof p.addedAt === "number" && !Number.isNaN(p.addedAt) ? p.addedAt : index;
-  const chipLabel = typeof p.chipLabel === "string" ? p.chipLabel : undefined;
-
-  let category: IconCategory;
-  if (typeof p.category === "string") {
-    const raw = p.category;
-    const migrated =
-      raw === "Süßmittel & Backen" || raw === "Suessmittel & Backen"
-        ? "Süssmittel & Backen"
-        : raw;
-    if ((ICON_CATEGORIES as readonly string[]).includes(migrated)) {
-      category = migrated as IconCategory;
-    } else if (typeof p.icon === "string") {
-      category = categoryFromLegacyMaterialIcon(p.icon);
-    } else {
-      category = "Sonstiges";
-    }
-  } else if (typeof p.icon === "string") {
-    category = categoryFromLegacyMaterialIcon(p.icon);
-  } else {
-    category = "Sonstiges";
-  }
-
-  return { id, name, category, status, addedAt, chipLabel };
+function isStringArray(v: unknown): v is string[] {
+  return Array.isArray(v) && v.every((x) => typeof x === "string");
 }
 
-/** Ensure scaling fields exist for older persisted states. */
-function patchRecipeDetailEntry(raw: unknown): RecipeDetail {
-  const d = (isRecord(raw) ? raw : {}) as Partial<RecipeDetail>;
-  const basePortions =
-    typeof d.basePortions === "number" &&
-    d.basePortions > 0 &&
-    !Number.isNaN(d.basePortions)
-      ? Math.min(99, Math.max(1, Math.round(d.basePortions)))
-      : 4;
-  const sm = Array.isArray(d.scalingModes) ? d.scalingModes : [];
-  const hasPortionsMode = sm.some((m) => m.id === "portions");
-  const hasPercentMode = sm.some((m) => m.id === "percent");
-  const scalingModes =
-    hasPortionsMode && hasPercentMode
-      ? sm
-      : [
-          { id: "portions", label: "Portionen" },
-          { id: "percent", label: "Prozent" },
-        ];
-  const defaultScalingId = d.defaultScalingId === "percent" ? "percent" : "portions";
-  return { ...d, basePortions, scalingModes, defaultScalingId } as RecipeDetail;
-}
+function isValidState(raw: unknown): raw is AppState {
+  if (!isRecord(raw)) return false;
+  if (!Array.isArray(raw.pantry)) return false;
+  if (!Array.isArray(raw.recipeRows)) return false;
+  if (!isRecord(raw.recipeDetails)) return false;
+  if (!isStringArray(raw.zutatenScreenRecipeOrder)) return false;
+  if (!isRecord(raw.recipeCardExtras)) return false;
+  if (!isStringArray(raw.selectedPantryIds)) return false;
+  if (!isRecord(raw.recipeRequiredPantryIds)) return false;
+  if (!isRecord(raw.recipeRequiredPantryNames)) return false;
+  if (typeof raw.groqApiKey !== "string") return false;
+  if (typeof raw.shoppingLocationLabel !== "string") return false;
+  if (!isStringArray(raw.bookmarkedRecipeIds)) return false;
 
-/** Overlay persisted fields onto defaults; invalid or partial data falls back per-field. */
-function normalizeState(raw: unknown): { state: AppState; backfilledRecipeNames: boolean } {
-  if (!isRecord(raw)) {
-    return { state: cloneDefaultState(), backfilledRecipeNames: false };
+  for (const p of raw.pantry) {
+    if (!isRecord(p)) return false;
+    if (typeof p.id !== "string" || p.id.length === 0) return false;
+    if (typeof p.name !== "string" || p.name.length === 0) return false;
+    if (!(ICON_CATEGORIES as readonly string[]).includes(String(p.category))) return false;
+    if (p.status !== "raw" && p.status !== "precooked") return false;
+    if (typeof p.addedAt !== "number" || !Number.isFinite(p.addedAt)) return false;
+    if (p.chipLabel !== undefined && typeof p.chipLabel !== "string") return false;
   }
-
-  const base = cloneDefaultState();
-  let backfilledRecipeNames = false;
-
-  if (Array.isArray(raw.pantry)) {
-    base.pantry = (raw.pantry as unknown[]).map((row, i) =>
-      normalizePantryRow(row, i),
-    );
+  for (const r of raw.recipeRows) {
+    if (!isRecord(r)) return false;
+    if (typeof r.id !== "string" || typeof r.title !== "string") return false;
+    if (r.status !== "pantry" && r.status !== "shopping") return false;
+    if (typeof r.minutes !== "number" || !Number.isFinite(r.minutes)) return false;
   }
-  if (Array.isArray(raw.recipeRows)) {
-    base.recipeRows = raw.recipeRows as AppState["recipeRows"];
+  for (const [k, v] of Object.entries(raw.recipeCardExtras)) {
+    if (typeof k !== "string" || !isRecord(v) || typeof v.tag !== "string") return false;
   }
-  if (isRecord(raw.recipeDetails)) {
-    const patched: AppState["recipeDetails"] = {};
-    for (const [id, detail] of Object.entries(raw.recipeDetails)) {
-      patched[id] = patchRecipeDetailEntry(detail);
-    }
-    base.recipeDetails = patched;
+  for (const [k, v] of Object.entries(raw.recipeRequiredPantryIds)) {
+    if (typeof k !== "string" || !isStringArray(v)) return false;
   }
-  if (Array.isArray(raw.zutatenScreenRecipeOrder)) {
-    base.zutatenScreenRecipeOrder = raw.zutatenScreenRecipeOrder as string[];
+  for (const [k, v] of Object.entries(raw.recipeRequiredPantryNames)) {
+    if (typeof k !== "string" || !isStringArray(v)) return false;
   }
-  if (isRecord(raw.recipeCardExtras)) {
-    base.recipeCardExtras = raw.recipeCardExtras as AppState["recipeCardExtras"];
-  }
-  if (Array.isArray(raw.selectedPantryIds)) {
-    base.selectedPantryIds = raw.selectedPantryIds.filter(
-      (x): x is string => typeof x === "string",
-    );
-  }
-  if (isRecord(raw.recipeRequiredPantryIds)) {
-    base.recipeRequiredPantryIds = {
-      ...base.recipeRequiredPantryIds,
-      ...(raw.recipeRequiredPantryIds as AppState["recipeRequiredPantryIds"]),
-    };
-  }
-  if (isRecord(raw.recipeRequiredPantryNames)) {
-    base.recipeRequiredPantryNames = {
-      ...base.recipeRequiredPantryNames,
-      ...(raw.recipeRequiredPantryNames as AppState["recipeRequiredPantryNames"]),
-    };
-  }
-
-  /** Legacy: derive stored names from current pantry when IDs still exist (enables label matching after UUID churn). */
-  for (const [recipeId, ids] of Object.entries(base.recipeRequiredPantryIds)) {
-    if (!Array.isArray(ids) || ids.length === 0) continue;
-    const existing = base.recipeRequiredPantryNames[recipeId];
-    if (Array.isArray(existing) && existing.length === ids.length) continue;
-    const names = ids.map((pid) => {
-      const p = base.pantry.find((x) => x.id === pid);
-      return p ? (p.chipLabel ?? p.name).trim() : "";
-    });
-    if (names.every((n) => n.length > 0)) {
-      base.recipeRequiredPantryNames = {
-        ...base.recipeRequiredPantryNames,
-        [recipeId]: names,
-      };
-      backfilledRecipeNames = true;
-    }
-  }
-  if (typeof raw.groqApiKey === "string") {
-    base.groqApiKey = raw.groqApiKey;
-  }
-  if (typeof raw.shoppingLocationLabel === "string") {
-    base.shoppingLocationLabel = raw.shoppingLocationLabel;
-  }
-  if (Array.isArray(raw.bookmarkedRecipeIds)) {
-    base.bookmarkedRecipeIds = raw.bookmarkedRecipeIds.filter(
-      (x): x is string => typeof x === "string",
-    );
-  }
-
-  const pantryIds = new Set(base.pantry.map((p) => p.id));
-  base.selectedPantryIds = base.selectedPantryIds.filter((id) => pantryIds.has(id));
-
-  base.pantry = base.pantry.map((p, i) => {
-    const a = p.addedAt;
-    const addedAt =
-      typeof a === "number" && !Number.isNaN(a) ? a : i;
-    return { ...p, addedAt };
-  });
-
-  const recipeIds = new Set(base.recipeRows.map((r) => r.id));
-  base.bookmarkedRecipeIds = base.bookmarkedRecipeIds.filter((id) =>
-    recipeIds.has(id),
-  );
-
-  return { state: base, backfilledRecipeNames };
+  return true;
 }
 
 export function loadPersistedState(): AppState {
@@ -179,11 +59,11 @@ export function loadPersistedState(): AppState {
     if (!raw) {
       return cloneDefaultState();
     }
-    const { state, backfilledRecipeNames } = normalizeState(JSON.parse(raw));
-    if (backfilledRecipeNames) {
-      savePersistedState(state);
+    const parsed = JSON.parse(raw) as unknown;
+    if (!isValidState(parsed)) {
+      return resetPersistedState();
     }
-    return state;
+    return parsed;
   } catch {
     return cloneDefaultState();
   }
@@ -202,14 +82,6 @@ export function resetPersistedState(): AppState {
   const fresh = cloneDefaultState();
   savePersistedState(fresh);
   return fresh;
-}
-
-/** Same `localStorage` entry as usual; everything reset except `groqApiKey`. */
-export function resetPersistedStatePreservingGroqKey(groqApiKey: string): AppState {
-  const fresh = cloneDefaultState();
-  const next: AppState = { ...fresh, groqApiKey };
-  savePersistedState(next);
-  return next;
 }
 
 /** Dev / tests: restore factory defaults without touching localStorage. */
