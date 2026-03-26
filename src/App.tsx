@@ -107,6 +107,35 @@ export function App() {
   }, [screen]);
 
   useEffect(() => {
+    const onNavigate = (ev: Event) => {
+      const custom = ev as CustomEvent<{ screen?: ActiveScreen; focusId?: string }>;
+      const targetScreen = custom.detail?.screen;
+      if (!targetScreen) return;
+      setRecipeDetailId(null);
+      clearActiveDetailRecipeId();
+      clearDetailScrollRestore();
+      setScreen(targetScreen);
+
+      const focusId = custom.detail?.focusId;
+      if (!focusId) return;
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          const el = document.getElementById(focusId);
+          if (!el) return;
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          if ("focus" in el && typeof el.focus === "function") {
+            (el as HTMLElement).focus();
+          }
+        });
+      });
+    };
+
+    window.addEventListener("chefkoch:navigate", onNavigate as EventListener);
+    return () =>
+      window.removeEventListener("chefkoch:navigate", onNavigate as EventListener);
+  }, []);
+
+  useEffect(() => {
     if (!recipeDetailId) return;
     if (!state.recipeDetails[recipeDetailId]) {
       setRecipeDetailId(null);

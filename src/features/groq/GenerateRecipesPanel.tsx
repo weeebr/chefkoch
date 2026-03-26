@@ -8,6 +8,7 @@ export function GenerateRecipesPanel() {
   const [genError, setGenError] = useState<string | null>(null);
   const [genLoading, setGenLoading] = useState(false);
   const [willingToShop, setWillingToShop] = useState(false);
+  const hasGroqApiKey = state.groqApiKey.trim().length > 0;
 
   const hasMinSelection = state.selectedPantryIds.length >= 2;
   /** Bumps once per second while waiting so we re-read `Date.now()` (avoids stale clock after generate ends). */
@@ -15,7 +16,7 @@ export function GenerateRecipesPanel() {
   const waitSeconds = estimateWaitSecondsForNextClick(Date.now());
   const checkboxDisabled = !hasMinSelection;
   const hasTpmBudget = waitSeconds === 0;
-  const canGenerate = hasMinSelection && hasTpmBudget && !genLoading;
+  const canGenerate = hasGroqApiKey && hasMinSelection && hasTpmBudget && !genLoading;
   const hasGenerationPrereqs = canGenerate;
 
   const shouldTickCountdown =
@@ -87,6 +88,35 @@ export function GenerateRecipesPanel() {
                 : "Neue Rezepte generieren"}
           </span>
         </button>
+        {!hasGroqApiKey && (
+          <p className="text-xs leading-relaxed text-on-surface-variant">
+            Um Rezepte zu generieren, hinterlege einen Groq-API-Key. Den Key
+            bekommst du hier:{" "}
+            <a
+              href="https://console.groq.com/keys"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2"
+            >
+              https://console.groq.com/keys
+            </a>
+            . Füge ihn anschliessend{" "}
+            <button
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent("chefkoch:navigate", {
+                    detail: { screen: "settings", focusId: "groq-api-key" },
+                  }),
+                );
+              }}
+              className="underline underline-offset-2"
+            >
+              hier
+            </button>{" "}
+            hinzu.
+          </p>
+        )}
 
         <label
           className={[

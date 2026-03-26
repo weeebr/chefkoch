@@ -428,7 +428,7 @@ export function SettingsScreen() {
               htmlFor="groq-api-key"
               className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant"
             >
-              API-Schlüssel
+              API-Key
             </label>
             <input
               id="groq-api-key"
@@ -440,8 +440,16 @@ export function SettingsScreen() {
               onChange={(e) => setGroqApiKey(e.target.value)}
             />
             <p className="text-sm leading-relaxed text-on-surface-variant/90">
-              Dieser Schlüssel wird lokal in deinem Browser gespeichert und für
-              jede Rezept-Generierung verwendet.
+              Um die App zu nutzen, hinterlege einen Groq-API-Key. Den Key
+              bekommst du hier:{" "}
+              <a
+                href="https://console.groq.com/keys"
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-2"
+              >
+                https://console.groq.com/keys
+              </a>
             </p>
           </div>
         </div>
