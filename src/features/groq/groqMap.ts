@@ -3,33 +3,92 @@ import { cleanupNoteFromGroq } from "./cleanupNote";
 import type { GroqIngredientLine, GroqRecipeJson, GroqStepLine } from "./groqTypes";
 import { normalizeGroqListRow, normalizeGroqRecipeDetail, normalizeSwissGroqText } from "./swissDisplayText";
 
-/** Derive prep / cook / total from model fields without inventing fixed defaults. */
+function sanitizeTime(v: unknown): number {
+  if (typeof v !== "number" || Number.isNaN(v)) return NaN;
+  return Math.max(0, Math.round(v));
+}
+
+function ingredientCount(rows: GroqIngredientLine[] | undefined): number {
+  if (!Array.isArray(rows)) return 0;
+  return rows.filter(
+    (r) => typeof r?.component === "string" && r.component.trim().length > 0,
+  ).length;
+}
+
+function prepBurdenScore(j: GroqRecipeJson): number {
+  const rawCue = /\b(roh|frisch|zwiebel|knoblauch|karotte|kohl|brokkoli|blumenkohl|paprika|kartoffel|ingwer|sellerie)\b/i;
+  const readyCue = /\b(vorgekocht|gekocht|konserve|passata|sauce|pesto|bohnen)\b/i;
+  let score = 0;
+
+  for (const row of [...(j.ingredientsOnHand ?? []), ...(j.ingredientsShopping ?? [])]) {
+    const component = typeof row?.component === "string" ? row.component.trim() : "";
+    if (!component) continue;
+    if (rawCue.test(component)) score += 2;
+    if (readyCue.test(component)) score -= 1;
+  }
+  return Math.max(0, score);
+}
+
+function estimateTimesFromContent(j: GroqRecipeJson): {
+  prep: number;
+  cook: number;
+  total: number;
+} {
+  const onHandCount = ingredientCount(j.ingredientsOnHand);
+  const shoppingCount = ingredientCount(j.ingredientsShopping);
+  const stepCount = Array.isArray(j.steps) ? Math.max(1, j.steps.length) : 1;
+  const burden = prepBurdenScore(j);
+
+  const prep = Math.max(2, 4 + burden + shoppingCount + Math.floor(stepCount / 2));
+  const cook = Math.max(
+    6,
+    8 + Math.ceil(stepCount * 2.5) + Math.floor((onHandCount + shoppingCount) / 3),
+  );
+  return { prep, cook, total: prep + cook };
+}
+
+/** Derive prep / cook / total and fallback robustly when model timings are weak/inconsistent. */
 export function resolveRecipeTimes(j: GroqRecipeJson): {
   prep: number;
   cook: number;
   total: number;
 } {
-  const p =
-    typeof j.prepMinutes === "number" && !Number.isNaN(j.prepMinutes)
-      ? Math.max(0, Math.round(j.prepMinutes))
-      : NaN;
-  const c =
-    typeof j.cookMinutes === "number" && !Number.isNaN(j.cookMinutes)
-      ? Math.max(0, Math.round(j.cookMinutes))
-      : NaN;
-  const m =
-    typeof j.minutes === "number" && !Number.isNaN(j.minutes)
-      ? Math.max(0, Math.round(j.minutes))
-      : NaN;
+  const p = sanitizeTime(j.prepMinutes);
+  const c = sanitizeTime(j.cookMinutes);
+  const m = sanitizeTime(j.minutes);
+  const estimated = estimateTimesFromContent(j);
+
   if (!Number.isNaN(p) && !Number.isNaN(c)) {
-    return { prep: p, cook: c, total: p + c };
+    const sum = p + c;
+    if (!Number.isNaN(m) && Math.abs(sum - m) <= 5) {
+      return { prep: p, cook: c, total: m };
+    }
+    return { prep: p, cook: c, total: sum };
   }
+
   if (!Number.isNaN(m)) {
-    const prep = Math.round(m * 0.35);
+    if (!Number.isNaN(p)) {
+      const cook = Math.max(0, m - p);
+      return { prep: p, cook, total: m };
+    }
+    if (!Number.isNaN(c)) {
+      const prep = Math.max(0, m - c);
+      return { prep, cook: c, total: m };
+    }
+    const prepShare = Math.min(0.55, Math.max(0.2, estimated.prep / estimated.total));
+    const prep = Math.max(1, Math.round(m * prepShare));
     const cook = Math.max(0, m - prep);
     return { prep, cook, total: m };
   }
-  return { prep: 0, cook: 0, total: 0 };
+
+  if (!Number.isNaN(p)) {
+    return { prep: p, cook: estimated.cook, total: p + estimated.cook };
+  }
+  if (!Number.isNaN(c)) {
+    return { prep: estimated.prep, cook: c, total: estimated.prep + c };
+  }
+
+  return estimated;
 }
 
 /** Skip pseudo-rows the model sometimes emits as ingredients. */
