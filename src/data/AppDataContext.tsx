@@ -176,7 +176,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       const bookmarkedRecipeIds = has
         ? prev.bookmarkedRecipeIds.filter((id) => id !== recipeId)
         : [...prev.bookmarkedRecipeIds, recipeId];
-      const next: AppState = { ...prev, bookmarkedRecipeIds };
+      const bookmarkAddedAtByRecipeId = { ...prev.bookmarkAddedAtByRecipeId };
+      if (has) {
+        delete bookmarkAddedAtByRecipeId[recipeId];
+      } else {
+        bookmarkAddedAtByRecipeId[recipeId] = new Date().toISOString();
+      }
+      const next: AppState = {
+        ...prev,
+        bookmarkedRecipeIds,
+        bookmarkAddedAtByRecipeId,
+      };
       savePersistedState(next);
       return next;
     });

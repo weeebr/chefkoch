@@ -17,6 +17,7 @@ export function selectMatchingRecipeCards(state: AppState): RecipeMatchCard[] {
   const alwaysShowNewestCount = GROQ_RECIPES_PER_BATCH;
 
   const matchedRows = state.recipeRows
+    .filter((row) => !!state.recipeDetails[row.id] && !!state.recipeCardExtras[row.id])
     .map((row) => {
       const match = recipeMatchKind(row.id, state, maxMissing);
       const orderPos = orderIndex.get(row.id);
@@ -81,7 +82,12 @@ export function selectMatchingRecipeCards(state: AppState): RecipeMatchCard[] {
 export function selectBookmarkedRowsOrdered(state: AppState): RecipeListRow[] {
   const order = new Map(state.bookmarkedRecipeIds.map((id, i) => [id, i]));
   return state.recipeRows
-    .filter((row) => state.bookmarkedRecipeIds.includes(row.id))
+    .filter(
+      (row) =>
+        state.bookmarkedRecipeIds.includes(row.id) &&
+        !!state.recipeDetails[row.id] &&
+        !!state.recipeCardExtras[row.id],
+    )
     .sort((a, b) => {
       const oa = order.get(a.id) ?? 0;
       const ob = order.get(b.id) ?? 0;

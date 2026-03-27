@@ -30,7 +30,9 @@ function missingIngredientsForCurrentSelection(
   opts?: { includeShoppingAddOns?: boolean },
 ): string[] {
   const detail = state.recipeDetails[recipeId];
-  if (!detail) throw new Error(`Invariant violated: missing recipeDetails entry for id "${recipeId}"`);
+  if (!detail) {
+    return [];
+  }
   const requiredNames = state.recipeRequiredPantryNames[recipeId] ?? [];
   const requiredSet = new Set(
     requiredNames.map((x) => normalizeIngredientLabel(x)).filter(Boolean),

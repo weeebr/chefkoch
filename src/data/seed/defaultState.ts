@@ -17,6 +17,7 @@ export const defaultAppState: AppState = {
   groqApiKey: "",
   shoppingLocationLabel: "Hedingen (CH)",
   bookmarkedRecipeIds: [],
+  bookmarkAddedAtByRecipeId: {},
 };
 
 export function cloneDefaultState(): AppState {

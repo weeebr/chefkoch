@@ -11,6 +11,7 @@ import { IngredientsScreen } from "./pages/IngredientsScreen";
 import { RecipeDetailScreen } from "./pages/RecipeDetailScreen";
 import { RecipesScreen } from "./pages/RecipesScreen";
 import { SettingsScreen } from "./pages/SettingsScreen";
+import { GROQ_RECIPES_PER_BATCH } from "./features/groq/groqConstants";
 
 const RECIPES_SCROLL_TARGET_KEY = "chefkoch:recipesScrollTarget";
 
@@ -46,6 +47,7 @@ export function App() {
     () => readStoredActiveDetailRecipeId(),
   );
   const { state } = useAppData();
+  const validScreens = new Set<ActiveScreen>(["ingredients", "recipes", "settings"]);
 
   const clearDetailScrollRestore = () => {
     try {
@@ -136,12 +138,34 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const currentScreen = screen as unknown;
+    if (!validScreens.has(currentScreen as ActiveScreen)) {
+      setScreen("ingredients");
+      setRecipeDetailId(null);
+      clearActiveDetailRecipeId();
+      clearDetailScrollRestore();
+      return;
+    }
     if (!recipeDetailId) return;
     if (!state.recipeDetails[recipeDetailId]) {
       setRecipeDetailId(null);
+      setScreen("ingredients");
       clearActiveDetailRecipeId();
+      clearDetailScrollRestore();
     }
-  }, [recipeDetailId, state.recipeDetails]);
+  }, [recipeDetailId, screen, state.recipeDetails]);
+
+  const newestGeneratedUnbookmarkedIds = state.zutatenScreenRecipeOrder
+    .slice(0, GROQ_RECIPES_PER_BATCH)
+    .filter((id) => !state.bookmarkedRecipeIds.includes(id));
+  const currentGeneratedIndex = recipeDetailId
+    ? newestGeneratedUnbookmarkedIds.indexOf(recipeDetailId)
+    : -1;
+  const nextGeneratedRecipeId =
+    currentGeneratedIndex >= 0
+      ? newestGeneratedUnbookmarkedIds[currentGeneratedIndex + 1] ?? null
+      : null;
+  const hasRenderableDetail = !!(recipeDetailId && state.recipeDetails[recipeDetailId]);
 
   /** List screens scroll the document; opening detail should start at the top. */
   useLayoutEffect(() => {
@@ -168,7 +192,7 @@ export function App() {
 
   return (
     <AppShell screen={screen} onNavigate={handleNavigate}>
-      {!recipeDetailId && screen === "ingredients" && (
+      {!hasRenderableDetail && screen === "ingredients" && (
         <IngredientsScreen
           onGoToRecipes={(target) => {
             if (target === "saved") {
@@ -187,7 +211,7 @@ export function App() {
           }}
         />
       )}
-      {!recipeDetailId && screen === "recipes" && (
+      {!hasRenderableDetail && screen === "recipes" && (
         <RecipesScreen
           onGoToIngredients={() => setScreen("ingredients")}
           onOpenRecipe={(id) => {
@@ -197,7 +221,7 @@ export function App() {
           }}
         />
       )}
-      {recipeDetailId && (
+      {hasRenderableDetail && recipeDetailId && (
         <RecipeDetailScreen
           key={recipeDetailId}
           recipeId={recipeDetailId}
@@ -210,9 +234,18 @@ export function App() {
             setRecipeDetailId(null);
             clearActiveDetailRecipeId();
           }}
+          canGoNext={Boolean(nextGeneratedRecipeId)}
+          onNextRecipe={
+            nextGeneratedRecipeId
+              ? () => {
+                  saveActiveDetailRecipeId(nextGeneratedRecipeId);
+                  setRecipeDetailId(nextGeneratedRecipeId);
+                }
+              : undefined
+          }
         />
       )}
-      {!recipeDetailId && screen === "settings" && <SettingsScreen />}
+      {!hasRenderableDetail && screen === "settings" && <SettingsScreen />}
     </AppShell>
   );
 }

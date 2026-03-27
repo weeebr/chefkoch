@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { SCREEN_HEADING_CLASS } from "../components/layout/screenHeading";
 import { MaterialIcon } from "../components/MaterialIcon";
+import { InfoHintButton } from "../components/InfoHintButton";
 import {
   ingredientTableHeaderRowClass,
   ingredientWarmPanelClass,
@@ -18,6 +19,8 @@ import { scaleMeasurementQuantitiesInText } from "../utils/scaleQuantityString";
 type RecipeDetailScreenProps = {
   recipeId: string;
   onBack: () => void;
+  onNextRecipe?: () => void;
+  canGoNext?: boolean;
   /** Shown next to the back arrow (e.g. which tab we return to). */
   backLabel: string;
 };
@@ -27,9 +30,21 @@ function formatMinutes(n: number): string {
   return `${n} Min.`;
 }
 
+function formatBookmarkDate(value: string): string {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return "";
+  return new Intl.DateTimeFormat("de-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(timestamp));
+}
+
 export function RecipeDetailScreen({
   recipeId,
   onBack,
+  onNextRecipe,
+  canGoNext = false,
   backLabel,
 }: RecipeDetailScreenProps) {
   const { state } = useAppData();
@@ -47,6 +62,9 @@ export function RecipeDetailScreen({
     return d;
   }, [recipeId, state.recipeDetails]);
   const detailTag = state.recipeCardExtras[recipeId]?.tag?.trim() || "";
+  const bookmarkAddedAt = state.bookmarkAddedAtByRecipeId[recipeId];
+  const dynamicLinksHint =
+    "Zuvor ausgewählte Zutaten wirken sich dynamisch auf die Zutatenliste alle Rezepte aus. Wurde eine Zutat eines Rezepts davor nicht ausgewählt, so wandert sie in die Einkaufsliste darüber.";
 
   const {
     setScalingId,
@@ -127,20 +145,35 @@ export function RecipeDetailScreen({
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 pb-8 pt-4">
       <section className="mb-10">
-        <button
-          type="button"
-          onClick={onBack}
-          className="mb-4 inline-flex min-h-[48px] w-full max-w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-on-surface-variant transition-colors active:scale-[0.98] active:bg-surface-container-low active:text-on-surface"
-          aria-label={backLabel}
-        >
-          <MaterialIcon
-            name="arrow_back"
-            className="shrink-0 text-2xl text-on-surface-variant"
-          />
-          <span className="font-label text-sm font-semibold uppercase tracking-wide">
-            {backLabel}
-          </span>
-        </button>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex min-h-[48px] max-w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-on-surface-variant transition-colors active:scale-[0.98] active:bg-surface-container-low active:text-on-surface"
+            aria-label={backLabel}
+          >
+            <MaterialIcon
+              name="arrow_back"
+              className="shrink-0 text-2xl text-on-surface-variant"
+            />
+            <span className="font-label text-sm font-semibold uppercase tracking-wide">
+              {backLabel}
+            </span>
+          </button>
+          {canGoNext && onNextRecipe ? (
+            <button
+              type="button"
+              onClick={onNextRecipe}
+              className="inline-flex min-h-[48px] items-center gap-2 rounded-xl px-3 py-2.5 text-on-surface-variant transition-colors active:scale-[0.98] active:bg-surface-container-low active:text-on-surface"
+              aria-label="Nächstes neues Rezept"
+            >
+              <span className="font-label text-sm font-semibold uppercase tracking-wide">
+                Nächstes
+              </span>
+              <MaterialIcon name="arrow_forward" className="text-xl" />
+            </button>
+          ) : null}
+        </div>
         <div className="mb-6 flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <h2 className={SCREEN_HEADING_CLASS}>{detail.title}</h2>
@@ -297,9 +330,15 @@ export function RecipeDetailScreen({
         ) : null}
 
         {selectedDisplayIngredients.length > 0 ? (
-          <h3 className="mb-6 flex items-center gap-2 font-headline text-xl font-bold text-on-surface">
-            <MaterialIcon name="kitchen" className="text-secondary-dim" />
-            Zutaten
+          <h3 className="mb-6 flex items-center justify-between gap-2 font-headline text-xl font-bold text-on-surface">
+            <span className="inline-flex items-center gap-2">
+              <MaterialIcon name="kitchen" className="text-secondary-dim" />
+              Zutaten
+            </span>
+            <InfoHintButton
+              label="Hinweis zu dynamischen Verknüpfungen"
+              text={dynamicLinksHint}
+            />
           </h3>
         ) : null}
 
@@ -396,46 +435,14 @@ export function RecipeDetailScreen({
       ) : null}
 
       <footer className="mt-16 border-t border-outline-variant/20 pt-8">
-        <div className="mb-8 flex flex-col gap-6">
-          <div className="relative w-full">
-            <input
-              className="w-full rounded-lg border-none bg-surface-container-low py-2.5 pl-4 pr-12 font-body text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:ring-1 focus:ring-primary/20"
-              placeholder="Rezept verfeinern …"
-              type="text"
-              readOnly
-              aria-readonly
-            />
-            <span className="pointer-events-none absolute right-1 top-1 bottom-1 flex items-center justify-center rounded-md px-3 text-primary">
-              <MaterialIcon name="auto_fix_high" className="text-xl" />
+        <div className="mb-8" />
+        {bookmarkAddedAt ? (
+          <div className="flex justify-end">
+            <span className="font-label text-[10px] uppercase tracking-widest opacity-40">
+              Gespeichert am: {formatBookmarkDate(bookmarkAddedAt)}
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-on-surface-variant transition-colors active:bg-surface-container-low"
-            >
-              <MaterialIcon name="print" className="text-[18px]" />
-              <span className="font-label text-[10px] font-bold uppercase tracking-wider">
-                Drucken
-              </span>
-            </button>
-            <div className="mx-1 h-4 w-px bg-outline-variant/20" />
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-on-surface-variant transition-colors active:bg-surface-container-low"
-            >
-              <MaterialIcon name="share" className="text-[18px]" />
-              <span className="font-label text-[10px] font-bold uppercase tracking-wider">
-                Teilen
-              </span>
-            </button>
-          </div>
-        </div>
-        <div className="flex justify-end">
-          <span className="font-label text-[10px] uppercase tracking-widest opacity-40">
-            Stand: {detail.lastUpdatedLabel}
-          </span>
-        </div>
+        ) : null}
       </footer>
     </main>
   );

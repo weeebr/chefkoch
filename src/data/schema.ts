@@ -28,4 +28,6 @@ export interface AppState {
   shoppingLocationLabel: string;
   /** Recipe IDs shown on the Rezepte tab (order = display order). */
   bookmarkedRecipeIds: string[];
+  /** ISO timestamp of latest bookmark action by recipe id. */
+  bookmarkAddedAtByRecipeId: Record<string, string>;
 }

@@ -25,6 +25,12 @@ function isValidState(raw: unknown): raw is AppState {
   if (typeof raw.groqApiKey !== "string") return false;
   if (typeof raw.shoppingLocationLabel !== "string") return false;
   if (!isStringArray(raw.bookmarkedRecipeIds)) return false;
+  if (
+    raw.bookmarkAddedAtByRecipeId !== undefined &&
+    !isRecord(raw.bookmarkAddedAtByRecipeId)
+  ) {
+    return false;
+  }
 
   for (const p of raw.pantry) {
     if (!isRecord(p)) return false;
@@ -50,6 +56,11 @@ function isValidState(raw: unknown): raw is AppState {
   for (const [k, v] of Object.entries(raw.recipeRequiredPantryNames)) {
     if (typeof k !== "string" || !isStringArray(v)) return false;
   }
+  if (isRecord(raw.bookmarkAddedAtByRecipeId)) {
+    for (const [k, v] of Object.entries(raw.bookmarkAddedAtByRecipeId)) {
+      if (typeof k !== "string" || typeof v !== "string") return false;
+    }
+  }
   return true;
 }
 
@@ -63,7 +74,16 @@ export function loadPersistedState(): AppState {
     if (!isValidState(parsed)) {
       return resetPersistedState();
     }
-    return parsed;
+    const bookmarkAddedAtByRecipeId = isRecord(
+      (parsed as { bookmarkAddedAtByRecipeId?: unknown }).bookmarkAddedAtByRecipeId,
+    )
+      ? ((parsed as { bookmarkAddedAtByRecipeId: Record<string, string> })
+          .bookmarkAddedAtByRecipeId ?? {})
+      : {};
+    return {
+      ...(parsed as AppState),
+      bookmarkAddedAtByRecipeId,
+    };
   } catch {
     return cloneDefaultState();
   }

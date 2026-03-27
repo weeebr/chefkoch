@@ -21,7 +21,7 @@ export const ingredientSelectedChipSurfaceClass =
   "border-secondary/20 bg-secondary-lighter/45 active:bg-secondary-lighter/65";
 
 const chipBase =
-  "group inline-flex min-h-[34px] select-none items-center justify-center gap-1.5 rounded-xl border px-3 py-1 transition-colors [-webkit-tap-highlight-color:transparent] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/22";
+  "group inline-flex min-h-[34px] max-w-full select-none items-center justify-center gap-1.5 self-start justify-self-start rounded-xl border px-3 py-1 transition-colors [-webkit-tap-highlight-color:transparent] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/22";
 
 export function chipButtonClassName(selected: boolean): string {
   return selected
@@ -37,6 +37,6 @@ export function chipIconClassName(selected: boolean): string {
 
 export function chipLabelClassName(selected: boolean): string {
   return selected
-    ? "pointer-events-none text-sm font-medium text-on-secondary-fixed/95"
-    : "pointer-events-none text-sm font-medium text-on-surface";
+    ? "pointer-events-none max-w-[7.5rem] truncate text-sm font-medium text-on-secondary-fixed/95"
+    : "pointer-events-none max-w-[7.5rem] truncate text-sm font-medium text-on-surface";
 }

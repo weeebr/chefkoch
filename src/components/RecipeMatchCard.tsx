@@ -21,8 +21,14 @@ export type RecipeMatchCardProps = {
   onBookmarkToggle?: () => void;
 };
 
+function formatTotalMinutes(minutes: number): string {
+  if (!Number.isFinite(minutes) || minutes <= 0) return "—";
+  return `${Math.round(minutes)} Min.`;
+}
+
 export function RecipeMatchCard({
   title,
+  minutes,
   onOpen,
   endMeta,
   trailingAction,
@@ -30,7 +36,9 @@ export function RecipeMatchCard({
   isFullMatch = false,
   onBookmarkToggle,
 }: RecipeMatchCardProps) {
-  const accentTextClass = isFullMatch ? "text-secondary-dim" : "text-primary-dim";
+  const accentTextClass = isFullMatch
+    ? "text-secondary-dim"
+    : "text-primary-dim";
   const accentBgClass = isFullMatch
     ? "active:bg-secondary-lighter/30"
     : "active:bg-primary-container/30";
@@ -87,16 +95,20 @@ export function RecipeMatchCard({
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 p-4 text-left outline-none ring-inset focus-visible:ring-2 focus-visible:ring-primary/30"
       >
         <div className="min-w-0 flex-1 space-y-1">
-          <h4 className="font-bold text-on-surface">{title}</h4>
+          <h4 className="min-w-0 truncate font-bold text-on-surface">{title}</h4>
           <div className="flex min-w-0 items-center gap-x-3 text-xs font-medium text-on-surface-variant">
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-outline-variant/15 bg-white/60 px-1.5 py-0.5 text-[11px] font-semibold text-on-surface">
+              <MaterialIcon
+                name="schedule"
+                className="text-sm text-on-surface-variant"
+              />
+              {formatTotalMinutes(minutes)}
+            </span>
             {endMeta}
           </div>
         </div>
         {addBookmarkButton}
-        <MaterialIcon
-          name="chevron_right"
-          className={chevronClass}
-        />
+        <MaterialIcon name="chevron_right" className={chevronClass} />
       </div>
       {stripContent ? (
         <div className="flex shrink-0 items-center border-l border-outline-variant/10 pr-3 pl-1">

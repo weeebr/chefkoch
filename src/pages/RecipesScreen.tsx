@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   SCREEN_HEADING_CLASS,
   SCREEN_TITLE_ROW_CLASS,
@@ -19,12 +19,39 @@ type RecipesScreenProps = {
 };
 
 const RECIPES_SCROLL_TARGET_KEY = "chefkoch:recipesScrollTarget";
+const RECIPES_SORT_MODE_KEY = "chefkoch:recipesSortMode";
+type BookmarkSortMode = "lastBookmarked" | "totalCookingTime";
+
+function readStoredSortMode(): BookmarkSortMode {
+  try {
+    const raw = localStorage.getItem(RECIPES_SORT_MODE_KEY);
+    if (raw === "lastBookmarked" || raw === "totalCookingTime") {
+      return raw;
+    }
+  } catch {
+    /* ignore */
+  }
+  return "lastBookmarked";
+}
+
+function fuzzyIncludes(haystack: string, needle: string): boolean {
+  const source = haystack.trim().toLowerCase();
+  const query = needle.trim().toLowerCase();
+  if (!query) return true;
+  let needleIdx = 0;
+  for (let i = 0; i < source.length && needleIdx < query.length; i++) {
+    if (source[i] === query[needleIdx]) needleIdx += 1;
+  }
+  return needleIdx === query.length;
+}
 
 export function RecipesScreen({
   onOpenRecipe,
   onGoToIngredients,
 }: RecipesScreenProps) {
   const savedSectionRef = useRef<HTMLElement | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortMode, setSortMode] = useState<BookmarkSortMode>(readStoredSortMode);
   const {
     state,
     isGeneratingRecipes,
@@ -33,14 +60,31 @@ export function RecipesScreen({
   } = useAppData();
   const recipeListRows = useMemo(
     () => selectBookmarkedRowsOrdered(state),
-    [state.bookmarkedRecipeIds, state.recipeRows],
+    [state.bookmarkedRecipeIds, state.recipeRows, state.bookmarkAddedAtByRecipeId],
   );
+  const filteredAndSortedRecipeListRows = useMemo(() => {
+    const bySearch = recipeListRows.filter((row) => fuzzyIncludes(row.title, searchQuery));
+    const bySort = [...bySearch];
+    bySort.sort((a, b) => {
+      if (sortMode === "totalCookingTime") {
+        if (a.minutes !== b.minutes) return a.minutes - b.minutes;
+        return a.title.localeCompare(b.title, "de");
+      }
+      const aTime = Date.parse(state.bookmarkAddedAtByRecipeId[a.id] ?? "");
+      const bTime = Date.parse(state.bookmarkAddedAtByRecipeId[b.id] ?? "");
+      const aScore = Number.isFinite(aTime) ? aTime : 0;
+      const bScore = Number.isFinite(bTime) ? bTime : 0;
+      if (aScore !== bScore) return bScore - aScore;
+      return a.title.localeCompare(b.title, "de");
+    });
+    return bySort;
+  }, [recipeListRows, searchQuery, sortMode, state.bookmarkAddedAtByRecipeId]);
 
   // Rezepte screen contract:
   // source set is bookmarked recipes only, then split into matching + remaining.
   const matchingBookmarkedRows = useMemo(() => {
     const maxMissing = 2;
-    return recipeListRows
+    return filteredAndSortedRecipeListRows
       .map((row) => {
         const kind = recipeMatchKind(row.id, state, maxMissing)?.matchKind ?? null;
         return kind
@@ -55,10 +99,10 @@ export function RecipesScreen({
         (x): x is { row: RecipeListRow; matchKind: "full" | "partial"; missingIngredients: string[] } =>
           !!x,
       );
-  }, [recipeListRows, state]);
+  }, [filteredAndSortedRecipeListRows, state]);
   const unmatchedBookmarkedRows = useMemo(() => {
     const maxMissing = 2;
-    return recipeListRows
+    return filteredAndSortedRecipeListRows
       .map((row) => {
         const kind = recipeMatchKind(row.id, state, maxMissing);
         if (kind) return null;
@@ -70,7 +114,7 @@ export function RecipesScreen({
       .filter(
         (x): x is { row: RecipeListRow; missingIngredients: string[] } => !!x,
       );
-  }, [recipeListRows, state]);
+  }, [filteredAndSortedRecipeListRows, state]);
   const hasBookmarkedRecipes = recipeListRows.length > 0;
 
   useEffect(() => {
@@ -83,6 +127,14 @@ export function RecipesScreen({
       /* ignore */
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(RECIPES_SORT_MODE_KEY, sortMode);
+    } catch {
+      /* ignore */
+    }
+  }, [sortMode]);
 
   return (
     <main className={TAB_SCREEN_MAIN_CLASS}>
@@ -99,6 +151,54 @@ export function RecipesScreen({
           {recipeListRows.length}{" "}
           {recipeListRows.length === 1 ? "Rezept" : "Rezepte"}
         </span>
+      </div>
+
+      <div className="mb-12 flex items-center gap-2">
+        <label htmlFor="recipes-search" className="sr-only">
+          Rezepte suchen
+        </label>
+        <div className="relative min-w-0 flex-1">
+          <input
+            id="recipes-search"
+            className="w-full rounded-xl border border-outline-variant/15 bg-surface-container-low py-2.5 pl-10 pr-3 font-body text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+            placeholder="Rezepte suchen …"
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70">
+            <MaterialIcon name="search" className="text-xl" />
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            setSortMode((prev) =>
+              prev === "lastBookmarked" ? "totalCookingTime" : "lastBookmarked",
+            )
+          }
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-1 rounded-xl border border-outline-variant/15 bg-surface-container-low px-2 text-on-surface-variant transition-colors active:bg-surface-container-high"
+          aria-label={
+            sortMode === "lastBookmarked"
+              ? "Sortierung: zuletzt gespeichert"
+              : "Sortierung: Gesamtkochzeit"
+          }
+          title={
+            sortMode === "lastBookmarked"
+              ? "Sortierung: zuletzt gespeichert"
+              : "Sortierung: Gesamtkochzeit"
+          }
+        >
+          <MaterialIcon
+            name={sortMode === "lastBookmarked" ? "arrow_downward" : "arrow_upward"}
+            className="text-[20px]"
+          />
+          <span className="font-label text-[10px] font-bold uppercase tracking-wide">
+            {sortMode === "lastBookmarked"
+              ? "Zuletzt hinzugefügt"
+              : "Kochzeit"}
+          </span>
+        </button>
       </div>
 
       {!hasBookmarkedRecipes && pendingGeneratedRecipeSlots === 0 ? (
