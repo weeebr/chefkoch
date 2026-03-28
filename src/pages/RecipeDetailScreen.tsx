@@ -66,7 +66,7 @@ export function RecipeDetailScreen({
   const detailTag = state.recipeCardExtras[recipeId]?.tag?.trim() || "";
   const bookmarkAddedAt = state.bookmarkAddedAtByRecipeId[recipeId];
   const dynamicLinksHint =
-    "Zuvor ausgewählte Zutaten wirken sich dynamisch auf die Zutatenliste alle Rezepte aus. Wurde eine Zutat eines Rezepts davor nicht ausgewählt, so wandert sie in die Einkaufsliste darüber.";
+    "Zuvor ausgewählte Zutaten wirken sich dynamisch auf die Zutatenliste aller Rezepte aus. Je nach dem, ob eine Zutat ausgewählt wurde oder nicht, erscheint sie in der Liste 'Einkaufen' oder 'Zutaten'.";
 
   const {
     setScalingId,
@@ -97,16 +97,22 @@ export function RecipeDetailScreen({
     return out;
   }, [detail.shoppingAlternativesNote]);
 
-  const [shoppingDisplayIngredients, selectedDisplayIngredients] = useMemo(() => {
-    const pantryById = new Map(state.pantry.map((p) => [p.id, p]));
-    const selectedIds = new Set(state.selectedPantryIds);
-    return splitShoppingAndSelectedDisplayRows(
+  const [shoppingDisplayIngredients, selectedDisplayIngredients] =
+    useMemo(() => {
+      const pantryById = new Map(state.pantry.map((p) => [p.id, p]));
+      const selectedIds = new Set(state.selectedPantryIds);
+      return splitShoppingAndSelectedDisplayRows(
+        detail.ingredients,
+        displayIngredients,
+        pantryById,
+        selectedIds,
+      );
+    }, [
       detail.ingredients,
       displayIngredients,
-      pantryById,
-      selectedIds,
-    );
-  }, [detail.ingredients, displayIngredients, state.pantry, state.selectedPantryIds]);
+      state.pantry,
+      state.selectedPantryIds,
+    ]);
 
   const [shoppingDisplaySpices, selectedDisplaySpices] = useMemo(() => {
     const pantryById = new Map(state.pantry.map((p) => [p.id, p]));
@@ -120,8 +126,11 @@ export function RecipeDetailScreen({
   }, [detail.spices, displaySpices, state.pantry, state.selectedPantryIds]);
 
   const isFullMatch =
-    shoppingDisplayIngredients.length === 0 && shoppingDisplaySpices.length === 0;
-  const accentTextClass = isFullMatch ? "text-secondary-dim" : "text-primary-dim";
+    shoppingDisplayIngredients.length === 0 &&
+    shoppingDisplaySpices.length === 0;
+  const accentTextClass = isFullMatch
+    ? "text-secondary-dim"
+    : "text-primary-dim";
   const accentBgClass = isFullMatch
     ? "active:bg-secondary-lighter/30"
     : "active:bg-primary-container/30";
@@ -309,7 +318,8 @@ export function RecipeDetailScreen({
           </div>
         ) : null}
 
-        {selectedDisplayIngredients.length > 0 || detail.requiredBaseStaples.length > 0 ? (
+        {selectedDisplayIngredients.length > 0 ||
+        detail.requiredBaseStaples.length > 0 ? (
           <h3 className="mb-6 flex items-center justify-between gap-2 font-headline text-xl font-bold text-on-surface">
             <span className="inline-flex items-center gap-2">
               <MaterialIcon name="kitchen" className="text-secondary-dim" />
@@ -348,7 +358,10 @@ export function RecipeDetailScreen({
               </thead>
               <tbody className="divide-y divide-secondary/10 bg-surface-container-lowest/90">
                 {selectedDisplayIngredients.map((row, i) => (
-                  <tr key={`${row.component}-selected-${i}`} className="even:bg-secondary/5">
+                  <tr
+                    key={`${row.component}-selected-${i}`}
+                    className="even:bg-secondary/5"
+                  >
                     <td className="px-6 py-4 text-sm text-on-surface">
                       <p className="font-headline text-sm font-bold text-on-surface">
                         {row.component}
@@ -365,8 +378,9 @@ export function RecipeDetailScreen({
         ) : null}
         {resolvedMode === "percent" ? (
           <p className="mt-3 font-body text-xs leading-relaxed text-on-surface-variant">
-            Anteile schätzen die Mengenverhältnisse aus den Zahlenangaben im Rezept
-            (einheitliche Skala nur zum Vergleich; gemischte Einheiten sind näherungsweise).
+            Anteile schätzen die Mengenverhältnisse aus den Zahlenangaben im
+            Rezept (einheitliche Skala nur zum Vergleich; gemischte Einheiten
+            sind näherungsweise).
           </p>
         ) : null}
       </section>
@@ -456,7 +470,10 @@ export function RecipeDetailScreen({
                 </thead>
                 <tbody className="divide-y divide-secondary/10 bg-surface-container-lowest/90">
                   {selectedDisplaySpices.map((row, i) => (
-                    <tr key={`${row.component}-spice-selected-${i}`} className="even:bg-secondary/5">
+                    <tr
+                      key={`${row.component}-spice-selected-${i}`}
+                      className="even:bg-secondary/5"
+                    >
                       <td className="px-6 py-4 text-sm text-on-surface">
                         <p className="font-headline text-sm font-bold text-on-surface">
                           {row.component}
