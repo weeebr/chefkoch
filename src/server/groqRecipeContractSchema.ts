@@ -46,6 +46,10 @@ export const groqRecipeContractProviderSchema: z.ZodType<GroqRecipeJson> = z
 
     ingredientsOnHand: z.array(groqIngredientLineSchema).min(1),
     ingredientsShopping: z.array(groqIngredientLineSchema),
+    /** Explicit spices (not implicit base staples); may be empty. */
+    spices: z.array(groqIngredientLineSchema),
+    /** Canonical base staple names this recipe needs from the fixed implicit list. */
+    requiredBaseStaples: z.array(z.string()),
 
     equipmentNote: z.string(),
     nutritionNote: z.string(),
@@ -94,6 +98,8 @@ const groqRecipeJsonSchemaForResponseFormat: Record<string, unknown> = {
     "minutes",
     "ingredientsOnHand",
     "ingredientsShopping",
+    "spices",
+    "requiredBaseStaples",
     "equipmentNote",
     "nutritionNote",
     "optionalUpgradeNote",
@@ -150,6 +156,31 @@ const groqRecipeJsonSchemaForResponseFormat: Record<string, unknown> = {
           flavorNote: { type: "string" },
         },
       },
+    },
+    spices: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "component",
+          "quantity",
+          "alternatives",
+          "purchaseHint",
+          "flavorNote",
+        ],
+        properties: {
+          component: { type: "string", minLength: 1 },
+          quantity: { type: "string", minLength: 1 },
+          alternatives: { type: "string" },
+          purchaseHint: { type: "string" },
+          flavorNote: { type: "string" },
+        },
+      },
+    },
+    requiredBaseStaples: {
+      type: "array",
+      items: { type: "string" },
     },
     equipmentNote: { type: "string" },
     nutritionNote: { type: "string" },

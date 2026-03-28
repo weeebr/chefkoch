@@ -1,7 +1,7 @@
 import {
+  INGREDIENTS_SCREEN_MAIN_CLASS,
   SCREEN_HEADING_CLASS,
   SCREEN_TITLE_ROW_CLASS,
-  TAB_SCREEN_MAIN_CLASS,
 } from "../components/layout/screenHeading";
 import { MaterialIcon } from "../components/MaterialIcon";
 import { MissingIngredientsSummary } from "../components/MissingIngredientsSummary";
@@ -18,6 +18,7 @@ import { materialIconForCategory } from "../data/iconFromCategory";
 import { GenerateRecipesPanel } from "../features/groq/GenerateRecipesPanel";
 import type { IconCategory, IngredientChipItem } from "../types";
 import { GROQ_RECIPES_PER_BATCH } from "../features/groq/groqConstants";
+import { arrowNavLinkClassName } from "../components/link/linkArrowStyles";
 
 function ChipButton({
   item,
@@ -106,8 +107,15 @@ export function IngredientsScreen({
     return [generated, bookmarked] as const;
   })();
 
+  const zutatenOrder = state.zutatenScreenRecipeOrder;
+  const batchStart = Math.max(0, zutatenOrder.length - GROQ_RECIPES_PER_BATCH);
+  const newRecipeSlotIds = Array.from({ length: GROQ_RECIPES_PER_BATCH }, (_, i) => {
+    return zutatenOrder[batchStart + i];
+  });
+  const newlyGeneratedById = new Map(newlyGeneratedRecipeCards.map((c) => [c.id, c]));
+
   return (
-    <main className={`${TAB_SCREEN_MAIN_CLASS} space-y-10`}>
+    <main className={`${INGREDIENTS_SCREEN_MAIN_CLASS} space-y-10`}>
       <div className={SCREEN_TITLE_ROW_CLASS}>
         <h2 className={SCREEN_HEADING_CLASS}>Zutaten</h2>
       </div>
@@ -210,7 +218,7 @@ export function IngredientsScreen({
                 <button
                   type="button"
                   onClick={() => onGoToRecipes("saved")}
-                  className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-on-surface-variant transition-colors active:text-on-surface"
+                  className={arrowNavLinkClassName}
                 >
                   {"→"} Alle Rezepte
                 </button>

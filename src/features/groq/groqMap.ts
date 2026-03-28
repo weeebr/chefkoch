@@ -1,7 +1,14 @@
+import { baseStapleDisplayNameFromComponent, parseRequiredBaseStaplesFromGroq } from "../../data/basePantry";
+import { normalizeIngredientLabel } from "../../data/ingredientLabel";
 import type { RecipeDetail, RecipeIngredientRow, RecipeListRow, RecipeMethodStep } from "../../types";
 import { cleanupNoteFromGroq } from "./cleanupNote";
 import type { GroqIngredientLine, GroqRecipeJson, GroqStepLine } from "./groqTypes";
 import { normalizeGroqListRow, normalizeGroqRecipeDetail, normalizeSwissGroqText } from "./swissDisplayText";
+
+function normalizedIngredientKey(component: string): string {
+  const base = component.split(/[,(]/)[0]?.trim() ?? component.trim();
+  return normalizeIngredientLabel(base);
+}
 
 function sanitizeTime(v: unknown): number {
   if (typeof v !== "number" || Number.isNaN(v)) return NaN;
@@ -20,7 +27,11 @@ function prepBurdenScore(j: GroqRecipeJson): number {
   const readyCue = /\b(vorgekocht|gekocht|konserve|passata|sauce|pesto|bohnen)\b/i;
   let score = 0;
 
-  for (const row of [...(j.ingredientsOnHand ?? []), ...(j.ingredientsShopping ?? [])]) {
+  for (const row of [
+    ...(j.ingredientsOnHand ?? []),
+    ...(j.ingredientsShopping ?? []),
+    ...(j.spices ?? []),
+  ]) {
     const component = typeof row?.component === "string" ? row.component.trim() : "";
     if (!component) continue;
     if (rawCue.test(component)) score += 2;
@@ -125,6 +136,7 @@ function mapIngredientsFromGroq(j: GroqRecipeJson): RecipeIngredientRow[] {
         ? r.component.trim()
         : "—";
     if (isIngredientHeaderRow(c)) return;
+    if (baseStapleDisplayNameFromComponent(c)) return;
     rows.push({
       component: c,
       quantity: quantityFromGroqLine(r) || "—",
@@ -140,6 +152,26 @@ function mapIngredientsFromGroq(j: GroqRecipeJson): RecipeIngredientRow[] {
   return rows.length > 0 ? rows : [{ component: "—", quantity: "—" }];
 }
 
+function mapSpicesFromGroq(j: GroqRecipeJson): RecipeIngredientRow[] {
+  const rows: RecipeIngredientRow[] = [];
+  const pushLine = (r: GroqIngredientLine) => {
+    const c =
+      typeof r?.component === "string" && r.component.trim()
+        ? r.component.trim()
+        : "—";
+    if (isIngredientHeaderRow(c)) return;
+    if (baseStapleDisplayNameFromComponent(c)) return;
+    rows.push({
+      component: c,
+      quantity: quantityFromGroqLine(r) || "—",
+    });
+  };
+  for (const r of j.spices ?? []) {
+    pushLine(r);
+  }
+  return rows;
+}
+
 function buildFlavorSummaryNote(j: GroqRecipeJson): string | undefined {
   const notes: string[] = [];
   const push = (n: unknown) => {
@@ -153,6 +185,7 @@ function buildFlavorSummaryNote(j: GroqRecipeJson): string | undefined {
 
   for (const r of j.ingredientsOnHand ?? []) push(r?.flavorNote);
   for (const r of j.ingredientsShopping ?? []) push(r?.flavorNote);
+  for (const r of j.spices ?? []) push(r?.flavorNote);
 
   if (notes.length === 0) return undefined;
   const top = notes.slice(0, 3);
@@ -164,6 +197,17 @@ function buildFlavorSummaryNote(j: GroqRecipeJson): string | undefined {
 function buildShoppingAlternativesNote(j: GroqRecipeJson): string | undefined {
   const entries: string[] = [];
   for (const r of j.ingredientsShopping ?? []) {
+    const component =
+      typeof r?.component === "string" && r.component.trim() ? r.component.trim() : "";
+    const alternatives =
+      typeof r?.alternatives === "string" && r.alternatives.trim() ? r.alternatives.trim() : "";
+    if (!component || !alternatives) continue;
+    const cleanedAlternatives = sanitizeAlternativesText(alternatives);
+    if (!cleanedAlternatives) continue;
+    const value = `${component}: ${cleanedAlternatives}`;
+    if (!entries.some((x) => x.toLowerCase() === value.toLowerCase())) entries.push(value);
+  }
+  for (const r of j.spices ?? []) {
     const component =
       typeof r?.component === "string" && r.component.trim() ? r.component.trim() : "";
     const alternatives =
@@ -278,7 +322,11 @@ export function groqJsonToRecipeDetail(recipeId: string, j: GroqRecipeJson): Rec
       ? Math.min(99, Math.max(1, Math.round(j.servings)))
       : 4;
 
-  const ingredients = mapIngredientsFromGroq(j);
+  const requiredBaseStaples = parseRequiredBaseStaplesFromGroq(j.requiredBaseStaples);
+  let ingredients = mapIngredientsFromGroq(j);
+  const spices = mapSpicesFromGroq(j);
+  const spiceKeys = new Set(spices.map((r) => normalizedIngredientKey(r.component)));
+  ingredients = ingredients.filter((r) => !spiceKeys.has(normalizedIngredientKey(r.component)));
 
   const title = sanitizeRecipeTitle(j.title);
 
@@ -294,6 +342,8 @@ export function groqJsonToRecipeDetail(recipeId: string, j: GroqRecipeJson): Rec
     ],
     defaultScalingId: "portions",
     ingredients,
+    requiredBaseStaples,
+    spices,
     steps,
     ...(cleanupNote ? { cleanupNote } : {}),
     ...(shoppingHints ? { shoppingHints } : {}),
@@ -354,6 +404,9 @@ function summarizeFlavorTagFromIngredients(j: GroqRecipeJson): string {
     pushNote(r?.flavorNote);
   }
   for (const r of j.ingredientsShopping ?? []) {
+    pushNote(r?.flavorNote);
+  }
+  for (const r of j.spices ?? []) {
     pushNote(r?.flavorNote);
   }
 

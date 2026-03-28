@@ -12,6 +12,58 @@ function isStringArray(v: unknown): v is string[] {
   return Array.isArray(v) && v.every((x) => typeof x === "string");
 }
 
+function isValidRecipeIngredientRow(v: unknown): boolean {
+  if (!isRecord(v)) return false;
+  return typeof v.component === "string" && typeof v.quantity === "string";
+}
+
+function isValidRecipeMethodStep(v: unknown): boolean {
+  if (!isRecord(v)) return false;
+  return (
+    typeof v.order === "number" &&
+    typeof v.title === "string" &&
+    typeof v.body === "string"
+  );
+}
+
+function isValidRecipeDetail(v: unknown): boolean {
+  if (!isRecord(v)) return false;
+  if (typeof v.id !== "string" || typeof v.title !== "string") return false;
+  if (typeof v.prepMinutes !== "number" || typeof v.cookMinutes !== "number") return false;
+  if (typeof v.basePortions !== "number" || typeof v.defaultScalingId !== "string") return false;
+  if (typeof v.lastUpdatedLabel !== "string") return false;
+  if (!Array.isArray(v.scalingModes)) return false;
+  if (
+    !v.scalingModes.every(
+      (m) =>
+        isRecord(m) &&
+        typeof m.id === "string" &&
+        typeof (m as { label?: unknown }).label === "string",
+    )
+  ) {
+    return false;
+  }
+  if (!Array.isArray(v.ingredients) || !v.ingredients.every(isValidRecipeIngredientRow)) return false;
+  if (!Array.isArray(v.requiredBaseStaples) || !v.requiredBaseStaples.every((x) => typeof x === "string")) {
+    return false;
+  }
+  if (!Array.isArray(v.spices) || !v.spices.every(isValidRecipeIngredientRow)) return false;
+  if (!Array.isArray(v.steps) || !v.steps.every(isValidRecipeMethodStep)) return false;
+  const optionalNotes = [
+    "cleanupNote",
+    "shoppingHints",
+    "equipmentNote",
+    "optionalUpgradeNote",
+    "nutritionNote",
+    "flavorSummaryNote",
+    "shoppingAlternativesNote",
+  ] as const;
+  for (const k of optionalNotes) {
+    if (v[k] !== undefined && typeof v[k] !== "string") return false;
+  }
+  return true;
+}
+
 function isValidState(raw: unknown): raw is AppState {
   if (!isRecord(raw)) return false;
   if (!Array.isArray(raw.pantry)) return false;
@@ -60,6 +112,9 @@ function isValidState(raw: unknown): raw is AppState {
     for (const [k, v] of Object.entries(raw.bookmarkAddedAtByRecipeId)) {
       if (typeof k !== "string" || typeof v !== "string") return false;
     }
+  }
+  for (const d of Object.values(raw.recipeDetails)) {
+    if (!isValidRecipeDetail(d)) return false;
   }
   return true;
 }

@@ -56,11 +56,15 @@ function appendGeneratedRecipes(
     };
   }
 
-  next.zutatenScreenRecipeOrder = [...newIds, ...next.zutatenScreenRecipeOrder];
+  const order = [...next.zutatenScreenRecipeOrder];
+  for (const id of newIds) {
+    if (!order.includes(id)) order.push(id);
+  }
+  next.zutatenScreenRecipeOrder = order;
   return next;
 }
 
-/** Pure state transition: prune non-bookmarked recipes, then append generated recipes and prepend their ids to `zutatenScreenRecipeOrder`. */
+/** Pure state transition: prune non-bookmarked recipes, then append generated recipes and append their ids to `zutatenScreenRecipeOrder`. */
 export function applyGeneratedRecipesBatch(
   prev: AppState,
   payload: GeneratedRecipesPayload,
@@ -68,7 +72,7 @@ export function applyGeneratedRecipesBatch(
   return appendGeneratedRecipes(pruneNonBookmarkedRecipes(prev), payload);
 }
 
-/** Append generated recipes without pruning; used for progressive in-flight insertion. */
+/** Append generated recipes without pruning; used for progressive in-flight insertion (ids appended in fetch order). */
 export function appendGeneratedRecipesBatch(
   prev: AppState,
   payload: GeneratedRecipesPayload,

@@ -11,8 +11,7 @@ export const ingredientTableHeaderRowClass = "bg-secondary-lighter/30";
 export const ingredientShoppingWarmPanelClass =
   "rounded-xl border border-primary/18 bg-primary-container/25";
 
-export const ingredientShoppingTableHeaderRowClass =
-  "bg-primary-container/30";
+export const ingredientShoppingTableHeaderRowClass = "bg-primary-container/30";
 
 export const ingredientShoppingTableBodyDivideClass = "divide-primary/10";
 
@@ -21,7 +20,7 @@ export const ingredientSelectedChipSurfaceClass =
   "border-secondary/20 bg-secondary-lighter/45 active:bg-secondary-lighter/65";
 
 const chipBase =
-  "group inline-flex min-h-[34px] max-w-full select-none items-center justify-center gap-1.5 self-start justify-self-start rounded-xl border px-3 py-1 transition-colors [-webkit-tap-highlight-color:transparent] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/22";
+  "group inline-flex min-h-[20px] max-w-full select-none items-center justify-center gap-1.5 self-start justify-self-start rounded-xl border px-3 py-1 transition-colors [-webkit-tap-highlight-color:transparent] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/22";
 
 export function chipButtonClassName(selected: boolean): string {
   return selected
@@ -37,6 +36,6 @@ export function chipIconClassName(selected: boolean): string {
 
 export function chipLabelClassName(selected: boolean): string {
   return selected
-    ? "pointer-events-none max-w-[7.5rem] truncate text-sm font-medium text-on-secondary-fixed/95"
-    : "pointer-events-none max-w-[7.5rem] truncate text-sm font-medium text-on-surface";
+    ? "pointer-events-none max-w-[100px] truncate text-sm font-medium text-on-secondary-fixed/95"
+    : "pointer-events-none max-w-[100px] truncate text-sm font-medium text-on-surface";
 }

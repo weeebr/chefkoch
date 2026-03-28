@@ -95,6 +95,13 @@ const preCookedSeed: PantryIngredient[] = [
     status: "precooked",
     addedAt: 8,
   },
+  {
+    id: "pc_yogurt_nature",
+    name: "Joghurt nature",
+    category: c("Kühlschrank"),
+    status: "precooked",
+    addedAt: 23,
+  },
 ];
 
 /** Frisch / Roh: Gemüse, Kräuter, Gewürze, Milchprodukte, Eier. */

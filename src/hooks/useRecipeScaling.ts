@@ -44,6 +44,21 @@ export function useRecipeScaling(detail: RecipeDetail, recipeId: string) {
     }));
   }, [detail.ingredients, resolvedMode, scaleFactor]);
 
+  const displaySpices = useMemo(() => {
+    const rows = detail.spices;
+    if (resolvedMode === "percent") {
+      const shares = ingredientQuantityShareLabels(rows.map((r) => r.quantity));
+      return rows.map((row, i) => ({
+        ...row,
+        quantity: shares[i] ?? "—",
+      }));
+    }
+    return rows.map((row) => ({
+      ...row,
+      quantity: scaleQuantityString(row.quantity, scaleFactor),
+    }));
+  }, [detail.spices, resolvedMode, scaleFactor]);
+
   const setPortionsFromInput = (n: number) => {
     if (!Number.isFinite(n)) return;
     const p = Math.max(1, Math.min(99, Math.round(n)));
@@ -65,6 +80,7 @@ export function useRecipeScaling(detail: RecipeDetail, recipeId: string) {
     displayPortions,
     displayPercent,
     displayIngredients,
+    displaySpices,
     setPortionsFromInput,
     setPercentFromInput,
   };

@@ -155,9 +155,11 @@ export function App() {
     }
   }, [recipeDetailId, screen, state.recipeDetails]);
 
-  const newestGeneratedUnbookmarkedIds = state.zutatenScreenRecipeOrder
-    .slice(0, GROQ_RECIPES_PER_BATCH)
-    .filter((id) => !state.bookmarkedRecipeIds.includes(id));
+  /** Last batch in fetch order (ids are appended to `zutatenScreenRecipeOrder`). */
+  const newestBatchIds = state.zutatenScreenRecipeOrder.slice(-GROQ_RECIPES_PER_BATCH);
+  const newestGeneratedUnbookmarkedIds = newestBatchIds.filter(
+    (id) => !state.bookmarkedRecipeIds.includes(id),
+  );
   const currentGeneratedIndex = recipeDetailId
     ? newestGeneratedUnbookmarkedIds.indexOf(recipeDetailId)
     : -1;

@@ -9,9 +9,11 @@ import {
   ingredientShoppingTableHeaderRowClass,
   ingredientShoppingTableBodyDivideClass,
 } from "../components/ingredients/ingredientChipStyles";
+import { arrowNavLinkClassName } from "../components/link/linkArrowStyles";
 import { RecipeScalingSection } from "../components/recipe/RecipeScalingSection";
 import { useAppData } from "../data/AppDataContext";
 import { normalizeIngredientLabel } from "../data/ingredientLabel";
+import { splitShoppingAndSelectedDisplayRows } from "../data/splitRecipeIngredientsForPantry";
 import { useBookmarkRecipe } from "../hooks/useBookmarkRecipe";
 import { useRecipeScaling } from "../hooks/useRecipeScaling";
 import { scaleMeasurementQuantitiesInText } from "../utils/scaleQuantityString";
@@ -74,6 +76,7 @@ export function RecipeDetailScreen({
     displayPortions,
     displayPercent,
     displayIngredients,
+    displaySpices,
     setPortionsFromInput,
     setPercentFromInput,
   } = useRecipeScaling(detail, recipeId);
@@ -95,40 +98,29 @@ export function RecipeDetailScreen({
   }, [detail.shoppingAlternativesNote]);
 
   const [shoppingDisplayIngredients, selectedDisplayIngredients] = useMemo(() => {
-    // In shopping mode, the "Einkaufen" list should reflect what the user does
-    // NOT currently have selected. So we classify recipe ingredient rows using
-    // the current pantry selection (chipLabel ?? name) rather than generation-time
-    // required labels.
     const pantryById = new Map(state.pantry.map((p) => [p.id, p]));
     const selectedIds = new Set(state.selectedPantryIds);
-    const selectedCounts = new Map<string, number>();
-    for (const pid of selectedIds) {
-      const p = pantryById.get(pid);
-      if (!p) continue;
-      const key = normalizeIngredientLabel(p.chipLabel ?? p.name);
-      if (!key) continue;
-      selectedCounts.set(key, (selectedCounts.get(key) ?? 0) + 1);
-    }
-
-    const shopping: typeof displayIngredients = [];
-    const selected: typeof displayIngredients = [];
-
-    for (let i = 0; i < detail.ingredients.length; i++) {
-      const ingredient = detail.ingredients[i]!;
-      const base = ingredient.component.split(/[,(]/)[0]?.trim() ?? "";
-      const key = normalizeIngredientLabel(base);
-
-      if ((selectedCounts.get(key) ?? 0) > 0) {
-        selectedCounts.set(key, (selectedCounts.get(key) ?? 0) - 1);
-        selected.push(displayIngredients[i]!);
-      } else {
-        shopping.push(displayIngredients[i]!);
-      }
-    }
-
-    return [shopping, selected] as const;
+    return splitShoppingAndSelectedDisplayRows(
+      detail.ingredients,
+      displayIngredients,
+      pantryById,
+      selectedIds,
+    );
   }, [detail.ingredients, displayIngredients, state.pantry, state.selectedPantryIds]);
-  const isFullMatch = shoppingDisplayIngredients.length === 0;
+
+  const [shoppingDisplaySpices, selectedDisplaySpices] = useMemo(() => {
+    const pantryById = new Map(state.pantry.map((p) => [p.id, p]));
+    const selectedIds = new Set(state.selectedPantryIds);
+    return splitShoppingAndSelectedDisplayRows(
+      detail.spices,
+      displaySpices,
+      pantryById,
+      selectedIds,
+    );
+  }, [detail.spices, displaySpices, state.pantry, state.selectedPantryIds]);
+
+  const isFullMatch =
+    shoppingDisplayIngredients.length === 0 && shoppingDisplaySpices.length === 0;
   const accentTextClass = isFullMatch ? "text-secondary-dim" : "text-primary-dim";
   const accentBgClass = isFullMatch
     ? "active:bg-secondary-lighter/30"
@@ -149,28 +141,27 @@ export function RecipeDetailScreen({
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex min-h-[48px] max-w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-on-surface-variant transition-colors active:scale-[0.98] active:bg-surface-container-low active:text-on-surface"
+            className={`${arrowNavLinkClassName} max-w-full text-left`}
             aria-label={backLabel}
           >
             <MaterialIcon
               name="arrow_back"
-              className="shrink-0 text-2xl text-on-surface-variant"
+              className="shrink-0 text-[12px] leading-none text-secondary"
             />
-            <span className="font-label text-sm font-semibold uppercase tracking-wide">
-              {backLabel}
-            </span>
+            <span className="truncate">{backLabel}</span>
           </button>
           {canGoNext && onNextRecipe ? (
             <button
               type="button"
               onClick={onNextRecipe}
-              className="inline-flex min-h-[48px] items-center gap-2 rounded-xl px-3 py-2.5 text-on-surface-variant transition-colors active:scale-[0.98] active:bg-surface-container-low active:text-on-surface"
+              className={`${arrowNavLinkClassName} shrink-0`}
               aria-label="Nächstes neues Rezept"
             >
-              <span className="font-label text-sm font-semibold uppercase tracking-wide">
-                Nächstes
-              </span>
-              <MaterialIcon name="arrow_forward" className="text-xl" />
+              <span>Nächstes</span>
+              <MaterialIcon
+                name="arrow_forward"
+                className="shrink-0 text-[12px] leading-none text-secondary"
+              />
             </button>
           ) : null}
         </div>
@@ -254,17 +245,6 @@ export function RecipeDetailScreen({
         </div>
       </section>
 
-      <RecipeScalingSection
-        detail={detail}
-        resolvedMode={resolvedMode}
-        basePortions={basePortions}
-        displayPortions={displayPortions}
-        displayPercent={displayPercent}
-        onScalingModeChange={(id) => setScalingId(id)}
-        onPortionsInput={setPortionsFromInput}
-        onPercentInput={setPercentFromInput}
-      />
-
       <section className="mb-12">
         {shoppingDisplayIngredients.length > 0 ? (
           <h3 className="mb-6 flex items-center gap-2 font-headline text-xl font-bold text-primary-dim">
@@ -329,7 +309,7 @@ export function RecipeDetailScreen({
           </div>
         ) : null}
 
-        {selectedDisplayIngredients.length > 0 ? (
+        {selectedDisplayIngredients.length > 0 || detail.requiredBaseStaples.length > 0 ? (
           <h3 className="mb-6 flex items-center justify-between gap-2 font-headline text-xl font-bold text-on-surface">
             <span className="inline-flex items-center gap-2">
               <MaterialIcon name="kitchen" className="text-secondary-dim" />
@@ -340,6 +320,17 @@ export function RecipeDetailScreen({
               text={dynamicLinksHint}
             />
           </h3>
+        ) : null}
+
+        {detail.requiredBaseStaples.length > 0 ? (
+          <div className="mb-4 rounded-xl border border-outline-variant/15 bg-surface-container-low/45 px-2.5 py-2">
+            <p className="font-label text-[10px] font-medium uppercase tracking-[0.14em] text-on-surface-variant/80">
+              Basis-Vorrat
+            </p>
+            <p className="mt-0.5 font-body text-sm leading-snug text-on-surface/85">
+              {detail.requiredBaseStaples.join(", ")}
+            </p>
+          </div>
         ) : null}
 
         {selectedDisplayIngredients.length > 0 ? (
@@ -379,6 +370,120 @@ export function RecipeDetailScreen({
           </p>
         ) : null}
       </section>
+
+      {detail.spices.length > 0 ? (
+        <section className="mb-12">
+          {shoppingDisplaySpices.length > 0 ? (
+            <h3 className="mb-6 flex items-center gap-2 font-headline text-xl font-bold text-primary-dim">
+              <MaterialIcon name="shopping_cart" className="text-primary-dim" />
+              Einkaufen
+            </h3>
+          ) : null}
+          {shoppingDisplaySpices.length > 0 ? (
+            <div
+              className={`mb-4 overflow-hidden ${ingredientShoppingWarmPanelClass}`}
+            >
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className={ingredientShoppingTableHeaderRowClass}>
+                    <th className="px-6 py-4 font-label text-[10px] font-bold uppercase tracking-widest text-on-surface">
+                      <span>Zutat</span>{" "}
+                      <span className="font-body text-xs font-normal normal-case tracking-normal text-on-surface-variant/80">
+                        {"→"} Alternative
+                      </span>
+                    </th>
+                    <th className="px-6 py-4 text-right font-label text-[10px] font-bold uppercase tracking-widest text-on-surface">
+                      {resolvedMode === "percent" ? "Anteil" : "Menge"}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  className={`${ingredientShoppingTableBodyDivideClass} bg-surface-container-lowest/90`}
+                >
+                  {shoppingDisplaySpices.map((row, i) => (
+                    <tr
+                      key={`${row.component}-spice-shopping-${i}`}
+                      className="even:bg-primary/5"
+                    >
+                      <td className="px-6 py-4 text-sm text-on-surface">
+                        {(() => {
+                          const key = normalizeIngredientLabel(row.component);
+                          const alt = alternativesByIngredient.get(key);
+                          if (!alt) {
+                            return (
+                              <p className="font-headline text-sm font-bold text-on-surface">
+                                {row.component}
+                              </p>
+                            );
+                          }
+                          return (
+                            <p className="font-headline text-sm font-bold text-on-surface">
+                              {row.component}{" "}
+                              <span className="font-body text-xs font-normal text-on-surface-variant/80">
+                                {"→"} {alt}
+                              </span>
+                            </p>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-6 py-4 text-right font-headline text-sm font-bold text-on-surface">
+                        {row.quantity}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+          {selectedDisplaySpices.length > 0 ? (
+            <h3 className="mb-6 flex items-center gap-2 font-headline text-xl font-bold text-on-surface">
+              <MaterialIcon name="kitchen" className="text-secondary-dim" />
+              Zutaten
+            </h3>
+          ) : null}
+          {selectedDisplaySpices.length > 0 ? (
+            <div className={`overflow-hidden ${ingredientWarmPanelClass}`}>
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className={ingredientTableHeaderRowClass}>
+                    <th className="px-6 py-4 font-label text-[10px] font-bold uppercase tracking-widest text-on-surface">
+                      Zutat
+                    </th>
+                    <th className="px-6 py-4 text-right font-label text-[10px] font-bold uppercase tracking-widest text-on-surface">
+                      {resolvedMode === "percent" ? "Anteil" : "Menge"}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-secondary/10 bg-surface-container-lowest/90">
+                  {selectedDisplaySpices.map((row, i) => (
+                    <tr key={`${row.component}-spice-selected-${i}`} className="even:bg-secondary/5">
+                      <td className="px-6 py-4 text-sm text-on-surface">
+                        <p className="font-headline text-sm font-bold text-on-surface">
+                          {row.component}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-right font-headline text-sm font-bold text-on-surface">
+                        {row.quantity}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      <RecipeScalingSection
+        detail={detail}
+        resolvedMode={resolvedMode}
+        basePortions={basePortions}
+        displayPortions={displayPortions}
+        displayPercent={displayPercent}
+        onScalingModeChange={(id) => setScalingId(id)}
+        onPortionsInput={setPortionsFromInput}
+        onPercentInput={setPercentFromInput}
+      />
 
       <section className="mb-12">
         <h3 className="mb-8 flex items-center gap-2 font-headline text-xl font-bold text-on-surface">

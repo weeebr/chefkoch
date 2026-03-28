@@ -85,6 +85,10 @@ export interface RecipeDetail {
   /** Which tab is selected first: `portions` (custom portion count) or `percent` (%) */
   defaultScalingId: string;
   ingredients: RecipeIngredientRow[];
+  /** Subset of implicit base staples this recipe needs (never listed in ingredient tables). */
+  requiredBaseStaples: string[];
+  /** Explicit spices (not base salt/pepper); same row shape as ingredients. */
+  spices: RecipeIngredientRow[];
   steps: RecipeMethodStep[];
   /** Optional tip (e.g. Abwasch); not part of numbered steps. */
   cleanupNote?: string;

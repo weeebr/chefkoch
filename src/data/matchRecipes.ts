@@ -1,3 +1,4 @@
+import { isBaseStapleNormalizedKey } from "./basePantry";
 import { normalizeIngredientLabel } from "./ingredientLabel";
 import type { AppState } from "./schema";
 
@@ -41,10 +42,12 @@ function missingIngredientsForCurrentSelection(
   const selectedCounts = selectedIngredientCounts(state);
   const missing: string[] = [];
 
-  for (const row of detail.ingredients) {
+  const rows = [...detail.ingredients, ...detail.spices];
+  for (const row of rows) {
     const display = ingredientBaseLabel(row.component);
     const key = normalizeIngredientLabel(display);
     if (!key) continue;
+    if (isBaseStapleNormalizedKey(key)) continue;
     // For match-state computation we ignore shopping-only add-ons and only
     // evaluate the required pantry ingredient universe. For display we can
     // optionally include add-ons to show what is still missing to buy.

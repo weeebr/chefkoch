@@ -1,4 +1,5 @@
 import type { RecipeDetail, RecipeListRow } from "../../types";
+import { normalizeIngredientQuantityText } from "../../utils/normalizeIngredientQuantity";
 
 /** Swiss-style orthography: no Eszett (U+00DF); normalize to `ss`. */
 export function normalizeSwissGroqText(s: string): string {
@@ -52,7 +53,12 @@ export function normalizeGroqRecipeDetail(d: RecipeDetail): RecipeDetail {
     })),
     ingredients: d.ingredients.map((row) => ({
       component: normalizeSwissGroqText(row.component),
-      quantity: normalizeSwissGroqText(row.quantity),
+      quantity: normalizeIngredientQuantityText(normalizeSwissGroqText(row.quantity)),
+    })),
+    requiredBaseStaples: d.requiredBaseStaples.map((s) => normalizeSwissGroqText(s)),
+    spices: d.spices.map((row) => ({
+      component: normalizeSwissGroqText(row.component),
+      quantity: normalizeIngredientQuantityText(normalizeSwissGroqText(row.quantity)),
     })),
     steps: d.steps.map((step) => ({
       ...step,
@@ -71,6 +77,14 @@ export function normalizeGroqRecipeDetail(d: RecipeDetail): RecipeDetail {
         : undefined,
     nutritionNote:
       d.nutritionNote !== undefined ? normalizeSwissGroqText(d.nutritionNote) : undefined,
+    flavorSummaryNote:
+      d.flavorSummaryNote !== undefined
+        ? normalizeSwissGroqText(d.flavorSummaryNote)
+        : undefined,
+    shoppingAlternativesNote:
+      d.shoppingAlternativesNote !== undefined
+        ? normalizeSwissGroqText(d.shoppingAlternativesNote)
+        : undefined,
     lastUpdatedLabel: normalizeSwissGroqText(d.lastUpdatedLabel),
   };
 }

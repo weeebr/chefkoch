@@ -51,6 +51,10 @@ export type GroqRecipeJson = {
   /** Draft format: getrennt vorhanden / Einkauf */
   ingredientsOnHand?: GroqIngredientLine[];
   ingredientsShopping?: GroqIngredientLine[];
+  /** Spices actually used; quantities required. Not covered by implicit base pantry. */
+  spices: GroqIngredientLine[];
+  /** Which implicit base staples (canonical names) this recipe needs; never duplicate in ingredient arrays. */
+  requiredBaseStaples: string[];
   steps?: GroqStepLine[];
   /** Draft: Abwasch-Tipp (displayed as optional note, not a step) */
   dishwasherTip?: string;

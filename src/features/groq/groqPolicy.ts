@@ -1,3 +1,4 @@
+import { baseStapleDisplayNameFromComponent } from "../../data/basePantry";
 import { normalizeIngredientLabel } from "../../data/ingredientLabel";
 import type { GroqIngredientLine, GroqRecipeJson } from "./groqTypes";
 
@@ -20,6 +21,14 @@ export function ingredientComponentMatchesSelection(
     if (base === a) return true;
   }
   return false;
+}
+
+function stripBaseStapleLines(rows: GroqIngredientLine[] | undefined): GroqIngredientLine[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((r) => {
+    const c = typeof r.component === "string" ? r.component : "";
+    return !baseStapleDisplayNameFromComponent(c);
+  });
 }
 
 function filterIngredientsBySelection(
@@ -82,17 +91,24 @@ export function normalizeGroqRecipeForPolicy(
 ): GroqRecipeJson {
   const requiredNames = allowedPantryNames;
 
-  const filteredOnHand = filterIngredientsBySelection(j.ingredientsOnHand, requiredNames);
+  const jStripped: GroqRecipeJson = {
+    ...j,
+    ingredientsOnHand: stripBaseStapleLines(j.ingredientsOnHand),
+    ingredientsShopping: stripBaseStapleLines(j.ingredientsShopping),
+    spices: stripBaseStapleLines(j.spices),
+  };
+
+  const filteredOnHand = filterIngredientsBySelection(jStripped.ingredientsOnHand, requiredNames);
   const ensuredOnHand = ensureAllRequiredInIngredientsOnHand(filteredOnHand, requiredNames);
 
   if (willingToShop) {
     return {
-      ...j,
+      ...jStripped,
       ingredientsOnHand: ensuredOnHand,
     };
   }
 
-  const { shoppingHints: _sh, optionalUpgradeNote: _ou, ...rest } = j;
+  const { shoppingHints: _sh, optionalUpgradeNote: _ou, ...rest } = jStripped;
 
   return {
     ...rest,

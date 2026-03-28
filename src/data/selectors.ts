@@ -16,13 +16,14 @@ export function selectMatchingRecipeCards(state: AppState): RecipeMatchCard[] {
   const maxMissing = 2;
   const alwaysShowNewestCount = GROQ_RECIPES_PER_BATCH;
 
+  const zLen = state.zutatenScreenRecipeOrder.length;
   const matchedRows = state.recipeRows
     .filter((row) => !!state.recipeDetails[row.id] && !!state.recipeCardExtras[row.id])
     .map((row) => {
       const match = recipeMatchKind(row.id, state, maxMissing);
       const orderPos = orderIndex.get(row.id);
       const isNewestGenerated =
-        orderPos !== undefined && orderPos < alwaysShowNewestCount;
+        orderPos !== undefined && orderPos >= zLen - alwaysShowNewestCount;
       if (match) {
         return { row, match, orderPos };
       }

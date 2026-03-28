@@ -9,8 +9,13 @@ import { RecipeMatchCardSkeleton } from "../components/RecipeMatchCardSkeleton";
 import { MaterialIcon } from "../components/MaterialIcon";
 import { MissingIngredientsSummary } from "../components/MissingIngredientsSummary";
 import { useAppData } from "../data/AppDataContext";
+import { arrowNavLinkClassName } from "../components/link/linkArrowStyles";
 import { selectBookmarkedRowsOrdered } from "../data/selectors";
-import { recipeMatchKind, recipeMissingIngredients } from "../data/matchRecipes";
+import {
+  recipeMatchKind,
+  recipeMissingIngredients,
+} from "../data/matchRecipes";
+import { GROQ_RECIPES_PER_BATCH } from "../features/groq/groqConstants";
 import type { RecipeListRow } from "../types";
 
 type RecipesScreenProps = {
@@ -51,7 +56,8 @@ export function RecipesScreen({
 }: RecipesScreenProps) {
   const savedSectionRef = useRef<HTMLElement | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortMode, setSortMode] = useState<BookmarkSortMode>(readStoredSortMode);
+  const [sortMode, setSortMode] =
+    useState<BookmarkSortMode>(readStoredSortMode);
   const {
     state,
     isGeneratingRecipes,
@@ -60,10 +66,16 @@ export function RecipesScreen({
   } = useAppData();
   const recipeListRows = useMemo(
     () => selectBookmarkedRowsOrdered(state),
-    [state.bookmarkedRecipeIds, state.recipeRows, state.bookmarkAddedAtByRecipeId],
+    [
+      state.bookmarkedRecipeIds,
+      state.recipeRows,
+      state.bookmarkAddedAtByRecipeId,
+    ],
   );
   const filteredAndSortedRecipeListRows = useMemo(() => {
-    const bySearch = recipeListRows.filter((row) => fuzzyIncludes(row.title, searchQuery));
+    const bySearch = recipeListRows.filter((row) =>
+      fuzzyIncludes(row.title, searchQuery),
+    );
     const bySort = [...bySearch];
     bySort.sort((a, b) => {
       if (sortMode === "totalCookingTime") {
@@ -86,7 +98,8 @@ export function RecipesScreen({
     const maxMissing = 2;
     return filteredAndSortedRecipeListRows
       .map((row) => {
-        const kind = recipeMatchKind(row.id, state, maxMissing)?.matchKind ?? null;
+        const kind =
+          recipeMatchKind(row.id, state, maxMissing)?.matchKind ?? null;
         return kind
           ? {
               row,
@@ -96,8 +109,13 @@ export function RecipesScreen({
           : null;
       })
       .filter(
-        (x): x is { row: RecipeListRow; matchKind: "full" | "partial"; missingIngredients: string[] } =>
-          !!x,
+        (
+          x,
+        ): x is {
+          row: RecipeListRow;
+          matchKind: "full" | "partial";
+          missingIngredients: string[];
+        } => !!x,
       );
   }, [filteredAndSortedRecipeListRows, state]);
   const unmatchedBookmarkedRows = useMemo(() => {
@@ -117,12 +135,36 @@ export function RecipesScreen({
   }, [filteredAndSortedRecipeListRows, state]);
   const hasBookmarkedRecipes = recipeListRows.length > 0;
 
+  const tailSlotRecipeIds = useMemo(() => {
+    const order = state.zutatenScreenRecipeOrder;
+    const batchStart = Math.max(0, order.length - GROQ_RECIPES_PER_BATCH);
+    return Array.from(
+      { length: GROQ_RECIPES_PER_BATCH },
+      (_, i) => order[batchStart + i],
+    );
+  }, [state.zutatenScreenRecipeOrder]);
+
+  const matchingBookmarkedById = useMemo(
+    () => new Map(matchingBookmarkedRows.map((x) => [x.row.id, x])),
+    [matchingBookmarkedRows],
+  );
+
+  const matchingBookmarkedRowsRest = useMemo(() => {
+    const tail = new Set(
+      tailSlotRecipeIds.filter((id): id is string => Boolean(id)),
+    );
+    return matchingBookmarkedRows.filter((x) => !tail.has(x.row.id));
+  }, [matchingBookmarkedRows, tailSlotRecipeIds]);
+
   useEffect(() => {
     try {
       const target = localStorage.getItem(RECIPES_SCROLL_TARGET_KEY);
       if (target !== "saved") return;
       localStorage.removeItem(RECIPES_SCROLL_TARGET_KEY);
-      savedSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      savedSectionRef.current?.scrollIntoView({
+        block: "start",
+        behavior: "smooth",
+      });
     } catch {
       /* ignore */
     }
@@ -138,7 +180,9 @@ export function RecipesScreen({
 
   return (
     <main className={TAB_SCREEN_MAIN_CLASS}>
-      <div className={`${SCREEN_TITLE_ROW_CLASS} flex items-center justify-between gap-2`}>
+      <div
+        className={`${SCREEN_TITLE_ROW_CLASS} flex items-center justify-between gap-2`}
+      >
         <div className="flex items-center gap-2">
           <MaterialIcon
             name="bookmark"
@@ -190,13 +234,13 @@ export function RecipesScreen({
           }
         >
           <MaterialIcon
-            name={sortMode === "lastBookmarked" ? "arrow_downward" : "arrow_upward"}
+            name={
+              sortMode === "lastBookmarked" ? "arrow_downward" : "arrow_upward"
+            }
             className="text-[20px]"
           />
           <span className="font-label text-[10px] font-bold uppercase tracking-wide">
-            {sortMode === "lastBookmarked"
-              ? "Zuletzt hinzugefügt"
-              : "Kochzeit"}
+            {sortMode === "lastBookmarked" ? "Zuletzt hinzugefügt" : "Kochzeit"}
           </span>
         </button>
       </div>
@@ -217,64 +261,108 @@ export function RecipesScreen({
                 <button
                   type="button"
                   onClick={onGoToIngredients}
-                  className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-on-surface-variant transition-colors active:text-on-surface"
+                  className={arrowNavLinkClassName}
                 >
-                  {"→"} andere Zutaten wählen
+                  {"→"} andere Zutaten
                 </button>
               ) : null}
             </div>
             <div className="rounded-xl border border-outline-variant/20 bg-surface-container-low/45 px-4 py-3">
               <p className="text-sm leading-relaxed text-on-surface-variant">
-                Ausgewählte Zutaten filtern dynamisch passende Rezepte in den Bookmarks
-                und auf der Zutaten-Page.
+                Ausgewählte Zutaten filtern dynamisch passende Rezepte in den
+                Bookmarks und auf der Zutaten-Page.
               </p>
               {matchingBookmarkedRows.length === 0 ? (
                 <button
                   type="button"
                   onClick={onGoToIngredients}
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-on-surface-variant transition-colors active:text-on-surface"
+                  className={`mt-2 ${arrowNavLinkClassName}`}
                 >
-                  {"→"} andere Zutaten wählen
+                  {"→"} andere Zutaten
                 </button>
               ) : null}
             </div>
             <div className="flex flex-col gap-3">
-              {matchingBookmarkedRows.map(({ row, matchKind, missingIngredients }) => (
+              {tailSlotRecipeIds.map((slotId, i) => {
+                const entry = slotId
+                  ? matchingBookmarkedById.get(slotId)
+                  : undefined;
+                if (entry) {
+                  const { row, missingIngredients } = entry;
+                  return (
+                    <RecipeMatchCard
+                      key={row.id}
+                      title={row.title}
+                      minutes={row.minutes}
+                      onOpen={() => onOpenRecipe(row.id)}
+                      isFullMatch={missingIngredients.length === 0}
+                      endMeta={(() => {
+                        const extras = state.recipeCardExtras[row.id];
+                        if (!extras) {
+                          throw new Error(
+                            `Invariant violated: missing recipeCardExtras entry for id "${row.id}"`,
+                          );
+                        }
+                        const tag = extras.tag;
+                        return (
+                          <>
+                            {missingIngredients.length > 0 ? (
+                              <MissingIngredientsSummary
+                                names={missingIngredients}
+                              />
+                            ) : (
+                              <span className="truncate font-bold uppercase tracking-tighter text-on-surface-variant">
+                                {tag}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
+                      bookmarked
+                      onBookmarkToggle={() => toggleBookmarkRecipe(row.id)}
+                    />
+                  );
+                }
+                if (isGeneratingRecipes) {
+                  return (
+                    <RecipeMatchCardSkeleton key={`gen-skel-recipes-${i}`} />
+                  );
+                }
+                return null;
+              })}
+              {matchingBookmarkedRowsRest.map(({ row, missingIngredients }) => (
                 <RecipeMatchCard
                   key={row.id}
                   title={row.title}
                   minutes={row.minutes}
                   onOpen={() => onOpenRecipe(row.id)}
                   isFullMatch={missingIngredients.length === 0}
-                  endMeta={
-                    (() => {
-                      const extras = state.recipeCardExtras[row.id];
-                      if (!extras) {
-                        throw new Error(`Invariant violated: missing recipeCardExtras entry for id "${row.id}"`);
-                      }
-                      const tag = extras.tag;
-                      return (
-                        <>
-                          {missingIngredients.length > 0 ? (
-                            <MissingIngredientsSummary names={missingIngredients} />
-                          ) : (
-                            <span className="truncate font-bold uppercase tracking-tighter text-on-surface-variant">
-                              {tag}
-                            </span>
-                          )}
-                        </>
+                  endMeta={(() => {
+                    const extras = state.recipeCardExtras[row.id];
+                    if (!extras) {
+                      throw new Error(
+                        `Invariant violated: missing recipeCardExtras entry for id "${row.id}"`,
                       );
-                    })()
-                  }
+                    }
+                    const tag = extras.tag;
+                    return (
+                      <>
+                        {missingIngredients.length > 0 ? (
+                          <MissingIngredientsSummary
+                            names={missingIngredients}
+                          />
+                        ) : (
+                          <span className="truncate font-bold uppercase tracking-tighter text-on-surface-variant">
+                            {tag}
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
                   bookmarked
                   onBookmarkToggle={() => toggleBookmarkRecipe(row.id)}
                 />
               ))}
-              {isGeneratingRecipes
-                ? Array.from({ length: pendingGeneratedRecipeSlots }).map((_, i) => (
-                    <RecipeMatchCardSkeleton key={`gen-skel-recipes-${i}`} />
-                  ))
-                : null}
             </div>
           </section>
 
@@ -300,7 +388,9 @@ export function RecipesScreen({
                     minutes={row.minutes}
                     onOpen={() => onOpenRecipe(row.id)}
                     isFullMatch={false}
-                    endMeta={<MissingIngredientsSummary names={missingIngredients} />}
+                    endMeta={
+                      <MissingIngredientsSummary names={missingIngredients} />
+                    }
                     bookmarked
                     onBookmarkToggle={() => toggleBookmarkRecipe(row.id)}
                   />
