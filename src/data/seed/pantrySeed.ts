@@ -24,20 +24,6 @@ const preCookedSeed: PantryIngredient[] = [
     addedAt: 1,
   },
   {
-    id: "pc_rice",
-    name: "Reis",
-    category: c("Vorratsschrank"),
-    status: "raw",
-    addedAt: 2,
-  },
-  {
-    id: "pc_pasta",
-    name: "Pasta",
-    category: c("Vorratsschrank"),
-    status: "raw",
-    addedAt: 3,
-  },
-  {
     id: "pc_vegmix",
     name:
       "Romanesco-Mix (Romanesco, Karottenscheiben, Pelzerkarotten, Brokkoli, Zwiebeln)",
