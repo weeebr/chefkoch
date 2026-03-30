@@ -1,12 +1,7 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-const { readFileSync } = require("node:fs");
-const { resolve } = require("node:path");
-const {
-  generateRecipeOnceWithGroqJsonSchema,
-} = require("../src/server/groqGenerateRecipe");
-const {
-  generateRecipeRequestSchema,
-} = require("../src/server/groqGenerateRecipeRequest");
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { generateRecipeOnceWithGroqJsonSchema } from "../src/server/groqGenerateRecipe";
+import { generateRecipeRequestSchema } from "../src/server/groqGenerateRecipeRequest";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -49,7 +44,7 @@ function getPromptSource(): string {
   throw new Error("Prompt source file not found in runtime.");
 }
 
-async function handler(
+export default async function handler(
   req: any,
   res: any,
 ): Promise<void> {
@@ -130,5 +125,3 @@ async function handler(
     writeJson(res, status, { error: { message: msg } });
   }
 }
-
-module.exports = handler;
