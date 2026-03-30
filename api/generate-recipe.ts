@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { generateRecipeOnceWithGroqJsonSchema } from "../src/server/groqGenerateRecipe";
-import { generateRecipeRequestSchema } from "../src/server/groqGenerateRecipeRequest";
+import { generateRecipeOnceWithGroqJsonSchema } from "../src/server/groqGenerateRecipe.js";
+import { generateRecipeRequestSchema } from "../src/server/groqGenerateRecipeRequest.js";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
