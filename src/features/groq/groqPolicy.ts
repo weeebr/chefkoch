@@ -22,7 +22,6 @@ export function ingredientComponentMatchesSelection(
     const a = normalizeIngredientLabel(raw);
     if (a.length < 2) continue;
     // For predictability in non-shopping mode we only accept exact label matches.
-    // Missing entries are handled separately by injecting required chips.
     if (base === a) return true;
   }
   return false;
@@ -52,15 +51,11 @@ function coversRequiredByComponent(component: string | undefined, required: stri
   return ingredientComponentMatchesSelection(component, [required]);
 }
 
-/**
- * Ensure the model used every user-selected ingredient at least once in `ingredientsOnHand`.
- * If the model omits some, we inject deterministic placeholders so the UI/list matches chips.
- */
-function ensureAllRequiredInIngredientsOnHand(
+function missingRequiredInIngredientsOnHand(
   onHand: GroqIngredientLine[],
   requiredNames: string[],
-): GroqIngredientLine[] {
-  if (!Array.isArray(requiredNames) || requiredNames.length === 0) return onHand;
+): string[] {
+  if (!Array.isArray(requiredNames) || requiredNames.length === 0) return [];
   const used = new Set<number>();
   const missing: string[] = [];
 
@@ -74,15 +69,7 @@ function ensureAllRequiredInIngredientsOnHand(
     else used.add(idx);
   }
 
-  if (missing.length === 0) return onHand;
-
-  return [
-    ...onHand,
-    ...missing.map((name) => ({
-      component: name,
-      quantity: "—",
-    })),
-  ];
+  return missing.filter(Boolean);
 }
 
 /**
@@ -92,6 +79,7 @@ function ensureAllRequiredInIngredientsOnHand(
 export function normalizeGroqRecipeForPolicy(
   j: GroqRecipeJson,
   willingToShop: boolean,
+  strictUseAllSelected: boolean,
   allowedPantryNames: string[],
 ): GroqRecipeJson {
   const requiredNames = allowedPantryNames;
@@ -104,12 +92,27 @@ export function normalizeGroqRecipeForPolicy(
   };
 
   const filteredOnHand = filterIngredientsBySelection(jStripped.ingredientsOnHand, requiredNames);
-  const ensuredOnHand = ensureAllRequiredInIngredientsOnHand(filteredOnHand, requiredNames);
+
+  if (strictUseAllSelected) {
+    const missing = missingRequiredInIngredientsOnHand(
+      filteredOnHand,
+      requiredNames,
+    );
+    if (missing.length > 0) {
+      console.error("[groq strict coverage] missing selected ingredients", {
+        missing,
+        requiredNames,
+        ingredientsOnHand: filteredOnHand.map((x) => x.component).filter(Boolean),
+        willingToShop,
+      });
+      throw new Error(`Fehlende ausgewählte Zutaten: ${missing.join(", ")}`);
+    }
+  }
 
   if (willingToShop) {
     return {
       ...jStripped,
-      ingredientsOnHand: ensuredOnHand,
+      ingredientsOnHand: filteredOnHand,
     };
   }
 
@@ -118,8 +121,7 @@ export function normalizeGroqRecipeForPolicy(
 
   return {
     ...rest,
-    // Ensure we use all selected chips at least once in the visible ingredient list.
-    ingredientsOnHand: ensuredOnHand,
+    ingredientsOnHand: filteredOnHand,
     ingredientsShopping: [],
     spices: filteredSpices,
   };

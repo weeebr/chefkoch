@@ -62,6 +62,7 @@ export default async function handler(request: Request): Promise<Response> {
       {
         pantryLines: requestData.pantryLines,
         willingToShop: requestData.willingToShop,
+        strictUseAllSelected: requestData.strictUseAllSelected,
         regionLabel: requestData.regionLabel,
         previousRecipeTitles: requestData.previousRecipeTitles,
         previousRecipeHints: requestData.previousRecipeHints,

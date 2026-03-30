@@ -9,6 +9,8 @@ export type RecipeGenerationInput = {
   pantryLines: RecipeGenerationPantryLine[];
   /** Draft: EINKAUFSBEREITSCHAFT Ja/Nein */
   willingToShop: boolean;
+  /** When true, all selected pantry ingredients must appear in `ingredientsOnHand`. */
+  strictUseAllSelected: boolean;
   /** Region / Ort für Einkaufszutaten und Verfügbarkeit (`AKTUELLER_STANDORT` in der Nutzer-JSON). */
   regionLabel: string;
   /**

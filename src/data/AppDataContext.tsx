@@ -55,6 +55,7 @@ type AppDataContextValue = {
   /** Returns `null` on success, or a German error message. */
   generateRecipesFromPantrySelection: (opts?: {
     willingToShop?: boolean;
+    strictUseAllSelected?: boolean;
   }) => Promise<string | null>;
   /** Cards for Zutaten → Passende Rezepte (filtered by multi-select + 100% ingredient match). */
   matchingRecipeCards: RecipeMatchCard[];
@@ -215,10 +216,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const generateRecipesFromPantrySelection = useCallback(
-    async (opts?: { willingToShop?: boolean }): Promise<string | null> => {
+    async (opts?: { willingToShop?: boolean; strictUseAllSelected?: boolean }): Promise<string | null> => {
       const apiKey = state.groqApiKey.trim();
       const selectedIds = [...new Set(state.selectedPantryIds)];
       const willingToShop = opts?.willingToShop ?? false;
+      const strictUseAllSelected = opts?.strictUseAllSelected ?? false;
       if (!apiKey) {
         return "Kein Groq-API-Schlüssel. Bitte unter Settings eintragen.";
       }
@@ -277,6 +279,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
             {
               pantryLines,
               willingToShop,
+              strictUseAllSelected,
               regionLabel: state.shoppingLocationLabel,
               previousRecipeTitles,
               previousRecipeHints,

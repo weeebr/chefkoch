@@ -35,6 +35,7 @@ const GROQ_MODEL = "moonshotai/kimi-k2-instruct-0905";
 type GenerateRecipeRequest = {
   pantryLines: RecipeGenerationPantryLine[];
   willingToShop: boolean;
+  strictUseAllSelected: boolean;
   regionLabel: string;
   previousRecipeTitles?: string[];
   previousRecipeHints?: Array<{
@@ -162,6 +163,7 @@ export async function generateRecipeOnceWithGroqJsonSchema(
     {
       pantryLines: req.pantryLines,
       willingToShop: req.willingToShop,
+      strictUseAllSelected: req.strictUseAllSelected,
       regionLabel: req.regionLabel,
       previousRecipeTitles: req.previousRecipeTitles,
       previousRecipeHints: req.previousRecipeHints,
@@ -207,6 +209,7 @@ export async function generateRecipeOnceWithGroqJsonSchema(
   const policyEnforced = normalizeGroqRecipeForPolicy(
     result.data,
     req.willingToShop,
+    req.strictUseAllSelected,
     allowedPantryNames,
   );
 

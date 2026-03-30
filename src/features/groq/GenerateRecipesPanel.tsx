@@ -8,6 +8,7 @@ export function GenerateRecipesPanel() {
   const [genError, setGenError] = useState<string | null>(null);
   const [genLoading, setGenLoading] = useState(false);
   const [willingToShop, setWillingToShop] = useState(false);
+  const [strictUseAllSelected, setStrictUseAllSelected] = useState(false);
   const hasGroqApiKey = state.groqApiKey.trim().length > 0;
 
   const hasMinSelection = state.selectedPantryIds.length >= 2;
@@ -16,11 +17,11 @@ export function GenerateRecipesPanel() {
   const waitSeconds = estimateWaitSecondsForNextClick(Date.now());
   const checkboxDisabled = !hasMinSelection;
   const hasTpmBudget = waitSeconds === 0;
-  const canGenerate = hasGroqApiKey && hasMinSelection && hasTpmBudget && !genLoading;
+  const canGenerate =
+    hasGroqApiKey && hasMinSelection && hasTpmBudget && !genLoading;
   const hasGenerationPrereqs = canGenerate;
 
-  const shouldTickCountdown =
-    hasMinSelection && !genLoading && waitSeconds > 0;
+  const shouldTickCountdown = hasMinSelection && !genLoading && waitSeconds > 0;
 
   useEffect(() => {
     if (!shouldTickCountdown) return;
@@ -37,7 +38,10 @@ export function GenerateRecipesPanel() {
   async function handleGenerate() {
     setGenError(null);
     setGenLoading(true);
-    const err = await generateRecipesFromPantrySelection({ willingToShop });
+    const err = await generateRecipesFromPantrySelection({
+      willingToShop,
+      strictUseAllSelected,
+    });
     setGenLoading(false);
     if (err) setGenError(err);
   }
@@ -144,6 +148,34 @@ export function GenerateRecipesPanel() {
           >
             <span className="font-semibold"> mit Zusatz-Zutaten</span>
             <span> (Einkauf)</span>
+          </span>
+        </label>
+
+        <label
+          className={[
+            "mx-auto flex w-fit items-start gap-3 text-left",
+            checkboxDisabled
+              ? "cursor-not-allowed opacity-60"
+              : "cursor-pointer",
+          ].join(" ")}
+        >
+          <input
+            type="checkbox"
+            checked={strictUseAllSelected}
+            disabled={checkboxDisabled}
+            onChange={(e) => setStrictUseAllSelected(e.target.checked)}
+            className={[
+              "mt-0.5 h-4 w-4 shrink-0 rounded border-outline-variant focus:ring-primary/20 accent-primary",
+              checkboxDisabled ? "cursor-not-allowed opacity-60" : "",
+            ].join(" ")}
+          />
+          <span
+            className={[
+              "text-sm leading-snug",
+              checkboxDisabled ? "text-on-surface/50" : "text-on-surface",
+            ].join(" ")}
+          >
+            <span className="font-semibold">alle Zutaten verwenden</span>
           </span>
         </label>
       </div>

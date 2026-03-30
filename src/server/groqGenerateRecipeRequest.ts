@@ -21,6 +21,7 @@ export const generateRecipeRequestSchema = z
   .object({
     pantryLines: z.array(pantryLineSchema).min(1),
     willingToShop: z.boolean(),
+    strictUseAllSelected: z.boolean(),
     regionLabel: z.string(),
     previousRecipeTitles: z.array(z.string()).optional(),
     previousRecipeHints: z.array(previousRecipeHintSchema).optional(),

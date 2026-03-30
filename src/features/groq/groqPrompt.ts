@@ -55,6 +55,10 @@ export function buildUserPrompt(
   const lines: string[] = [
     "NUTZERDATEN",
     line("WILLING_TO_SHOP", input.willingToShop ? "Yes" : "No"),
+    line(
+      "STRICT_USE_ALL_SELECTED",
+      input.strictUseAllSelected ? "Yes" : "No",
+    ),
     line("LOCATION", location),
     line("BATCH_INDEX", String(batch.batchIndex)),
     line("BATCH_TOTAL", String(batch.totalBatches)),
