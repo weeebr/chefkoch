@@ -44,8 +44,10 @@ type GenerateRecipeRequest = {
     equipmentNote?: string;
     flavorNote?: string;
   }>;
-  preferStarchBaseThisSlot?: boolean;
-  preferCreativeThisSlot?: boolean;
+  useStarchBaseThisSlot?: boolean;
+  useCreativeThisSlot?: boolean;
+  previousSlotUsedStarchBase?: boolean;
+  previousSlotCreativeMode?: "common" | "creative";
   generationIndex: number;
   totalRecipesToGenerate: number;
 };
@@ -169,8 +171,10 @@ export async function generateRecipeOnceWithGroqJsonSchema(
       regionLabel: req.regionLabel,
       previousRecipeTitles: req.previousRecipeTitles,
       previousRecipeHints: req.previousRecipeHints,
-      preferStarchBaseThisSlot: req.preferStarchBaseThisSlot,
-      preferCreativeThisSlot: req.preferCreativeThisSlot,
+      useStarchBaseThisSlot: req.useStarchBaseThisSlot,
+      useCreativeThisSlot: req.useCreativeThisSlot,
+      previousSlotUsedStarchBase: req.previousSlotUsedStarchBase,
+      previousSlotCreativeMode: req.previousSlotCreativeMode,
     },
     {
       batchIndex: req.generationIndex,
