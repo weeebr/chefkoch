@@ -9,7 +9,7 @@ export function GenerateRecipesPanel() {
   const [genLoading, setGenLoading] = useState(false);
   const [willingToShop, setWillingToShop] = useState(false);
   const [strictUseAllSelected, setStrictUseAllSelected] = useState(false);
-  const hasGroqApiKey = state.groqApiKey.trim().length > 0;
+  const hasOwnGroqApiKey = state.groqApiKey.trim().length > 0;
 
   const hasMinSelection = state.selectedPantryIds.length >= 2;
   /** Bumps once per second while waiting so we re-read `Date.now()` (avoids stale clock after generate ends). */
@@ -17,8 +17,7 @@ export function GenerateRecipesPanel() {
   const waitSeconds = estimateWaitSecondsForNextClick(Date.now());
   const checkboxDisabled = !hasMinSelection;
   const hasTpmBudget = waitSeconds === 0;
-  const canGenerate =
-    hasGroqApiKey && hasMinSelection && hasTpmBudget && !genLoading;
+  const canGenerate = hasMinSelection && hasTpmBudget && !genLoading;
   const hasGenerationPrereqs = canGenerate;
 
   const shouldTickCountdown = hasMinSelection && !genLoading && waitSeconds > 0;
@@ -92,34 +91,13 @@ export function GenerateRecipesPanel() {
                 : "Neue Rezepte generieren"}
           </span>
         </button>
-        {!hasGroqApiKey && (
-          <p className="text-xs leading-relaxed text-on-surface-variant">
-            Um Rezepte zu generieren, hinterlege einen Groq-API-Key. Den Key
-            bekommst du hier:{" "}
-            <a
-              href="https://console.groq.com/keys"
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-2"
-            >
-              https://console.groq.com/keys
-            </a>
-            . Füge ihn anschliessend{" "}
-            <button
-              type="button"
-              onClick={() => {
-                window.dispatchEvent(
-                  new CustomEvent("chefkoch:navigate", {
-                    detail: { screen: "settings", focusId: "groq-api-key" },
-                  }),
-                );
-              }}
-              className="underline underline-offset-2"
-            >
-              hier
-            </button>{" "}
-            hinzu.
-          </p>
+        {!hasOwnGroqApiKey && (
+          <div className="rounded-xl border border-error/30 bg-error/5 px-3 py-2">
+            <p className="text-xs leading-relaxed text-on-surface-variant">
+              <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-error align-middle" />
+              Bitte füge deinen eigenen Groq-API-Key in den Settings hinzu.
+            </p>
+          </div>
         )}
 
         <label

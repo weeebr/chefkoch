@@ -1,4 +1,5 @@
 import type { ActiveScreen } from "../../types";
+import { useAppData } from "../../data/AppDataContext";
 import { MaterialIcon } from "../MaterialIcon";
 
 type BottomNavProps = {
@@ -13,6 +14,8 @@ const tabs: { id: ActiveScreen; label: string; icon: string }[] = [
 ];
 
 export function BottomNav({ active, onChange }: BottomNavProps) {
+  const { state } = useAppData();
+  const needsOwnApiKey = state.groqApiKey.trim().length === 0;
   return (
     <>
       <nav
@@ -32,7 +35,15 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
                   : "flex min-h-[52px] w-full flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-2.5 text-on-surface-variant/50 transition-colors active:text-secondary active:scale-95"
               }
             >
-              <MaterialIcon name={tab.icon} className="shrink-0 text-[26px]" />
+              <span className="relative inline-flex">
+                <MaterialIcon name={tab.icon} className="shrink-0 text-[26px]" />
+                {tab.id === "settings" && needsOwnApiKey ? (
+                  <span
+                    className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-error"
+                    aria-hidden
+                  />
+                ) : null}
+              </span>
               <span className="max-w-full text-center text-[9px] font-bold uppercase leading-tight tracking-[0.12em]">
                 {tab.label}
               </span>

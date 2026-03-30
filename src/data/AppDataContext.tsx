@@ -69,6 +69,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => loadPersistedState());
   const [isGeneratingRecipes, setIsGeneratingRecipes] = useState(false);
   const [pendingGeneratedRecipeSlots, setPendingGeneratedRecipeSlots] = useState(0);
+  const fallbackGroqApiKey = (import.meta.env.VITE_GROQ_API_KEY ?? "").trim();
 
   const addPantryItem = useCallback(
     (input: {
@@ -217,7 +218,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const generateRecipesFromPantrySelection = useCallback(
     async (opts?: { willingToShop?: boolean; strictUseAllSelected?: boolean }): Promise<string | null> => {
-      const apiKey = state.groqApiKey.trim();
+      const customApiKey = state.groqApiKey.trim();
+      const apiKey = customApiKey || fallbackGroqApiKey;
       const selectedIds = [...new Set(state.selectedPantryIds)];
       const willingToShop = opts?.willingToShop ?? false;
       const strictUseAllSelected = opts?.strictUseAllSelected ?? false;
@@ -336,6 +338,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       }
     },
     [
+      fallbackGroqApiKey,
       state.groqApiKey,
       state.selectedPantryIds,
       state.pantry,
