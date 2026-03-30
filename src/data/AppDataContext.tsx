@@ -260,8 +260,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         const previousRecipeHints: NonNullable<
           import("../features/groq/groqTypes").RecipeGenerationInput["previousRecipeHints"]
         > = [];
-        let previousSlotUsedStarchBase: boolean | undefined;
-        let previousSlotCreativeMode: "common" | "creative" | undefined;
 
         const selectedPantrySnapshot = selectedPantry
           .filter((p) => p.status !== "spice")
@@ -280,14 +278,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         });
 
         for (let i = 0; i < totalRecipesToGenerate; i++) {
-          const useStarchBaseThisSlot =
-            previousSlotUsedStarchBase == null
-              ? i % 2 === 0
-              : !previousSlotUsedStarchBase;
-          const useCreativeThisSlot = (i + 1) % 3 === 0;
-          const creativeModeThisSlot: "common" | "creative" = useCreativeThisSlot
-            ? "creative"
-            : "common";
+          const useSlotModeThisSlot: "pasta" | "rice" | "else" =
+            i % 3 === 0 ? "pasta" : i % 3 === 1 ? "rice" : "else";
+          const useStyleModeThisSlot: "common" | "creative" =
+            (i + 1) % 3 === 0 ? "creative" : "common";
           const result = await fetchRecipeFromGroqOnce(
             apiKey,
             {
@@ -297,10 +291,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
               regionLabel: state.shoppingLocationLabel,
               previousRecipeTitles,
               previousRecipeHints,
-              useStarchBaseThisSlot,
-              useCreativeThisSlot,
-              previousSlotUsedStarchBase,
-              previousSlotCreativeMode,
+              useSlotModeThisSlot,
+              useStyleModeThisSlot,
             },
             { generationIndex: i, totalRecipesToGenerate },
           );
@@ -333,10 +325,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
               result.detail.nutritionNote ||
               undefined,
           });
-          previousSlotUsedStarchBase = result.detail.requiredBaseStaples.some(
-            (name) => name === "Pasta" || name === "Reis",
-          );
-          previousSlotCreativeMode = creativeModeThisSlot;
         }
         return null;
       } catch (e) {

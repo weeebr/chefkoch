@@ -28,21 +28,10 @@ export type RecipeGenerationInput = {
     equipmentNote?: string;
     flavorNote?: string;
   }>;
-  /**
-   * Slot-level steering: true means this recipe should prefer a starch base
-   * (Pasta/Reis), false means deprioritize to keep batch variety.
-   */
-  useStarchBaseThisSlot?: boolean;
-  /**
-   * Slot-level steering: true means prioritize a more creative recipe idea;
-   * false means favor a more common/popular dish profile.
-   */
-  useCreativeThisSlot?: boolean;
-  /**
-   * Chain context from the previously generated recipe in this batch.
-   */
-  previousSlotUsedStarchBase?: boolean;
-  previousSlotCreativeMode?: "common" | "creative";
+  /** Slot-level dish mode, independent from creative/common style mode. */
+  useSlotModeThisSlot?: "pasta" | "rice" | "else";
+  /** Slot-level style mode, independent from pasta/rice/else slot mode. */
+  useStyleModeThisSlot?: "common" | "creative";
 };
 
 export type GroqIngredientLine = {

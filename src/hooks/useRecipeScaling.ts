@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import type { RecipeDetail } from "../types";
-import { ingredientQuantityShareLabels } from "../utils/ingredientSharePercents";
 import { scaleQuantityString } from "../utils/scaleQuantityString";
 
 export function useRecipeScaling(detail: RecipeDetail, recipeId: string) {
@@ -14,7 +13,7 @@ export function useRecipeScaling(detail: RecipeDetail, recipeId: string) {
 
   useEffect(() => {
     setScaleFactor(1);
-    setScalingId(null);
+    setScalingId("portions");
   }, [recipeId]);
 
   const minFactor = 1 / basePortions;
@@ -30,37 +29,23 @@ export function useRecipeScaling(detail: RecipeDetail, recipeId: string) {
     1,
     Math.min(99, Math.round(scaleFactor * basePortions)),
   );
-  const displayPercent = Math.round(scaleFactor * 1000) / 10;
+  const displayPercent = Math.max(100, Math.min(9900, displayPortions * 100));
 
   const displayIngredients = useMemo(() => {
     const rows = detail.ingredients;
-    if (resolvedMode === "percent") {
-      const shares = ingredientQuantityShareLabels(rows.map((r) => r.quantity));
-      return rows.map((row, i) => ({
-        ...row,
-        quantity: shares[i] ?? "—",
-      }));
-    }
     return rows.map((row) => ({
       ...row,
       quantity: scaleQuantityString(row.quantity, scaleFactor),
     }));
-  }, [detail.ingredients, resolvedMode, scaleFactor]);
+  }, [detail.ingredients, scaleFactor]);
 
   const displaySpices = useMemo(() => {
     const rows = detail.spices;
-    if (resolvedMode === "percent") {
-      const shares = ingredientQuantityShareLabels(rows.map((r) => r.quantity));
-      return rows.map((row, i) => ({
-        ...row,
-        quantity: shares[i] ?? "—",
-      }));
-    }
     return rows.map((row) => ({
       ...row,
       quantity: scaleQuantityString(row.quantity, scaleFactor),
     }));
-  }, [detail.spices, resolvedMode, scaleFactor]);
+  }, [detail.spices, scaleFactor]);
 
   /** Main + spice rows in display order (matches `matchRecipes` concatenation). */
   const displayMergedIngredientRows = useMemo(
@@ -76,8 +61,9 @@ export function useRecipeScaling(detail: RecipeDetail, recipeId: string) {
 
   const setPercentFromInput = (n: number) => {
     if (!Number.isFinite(n)) return;
-    const pc = Math.max(1, Math.round(n * 10) / 10);
-    setScaleFactor(clampFactor(pc / 100));
+    const pc = Math.max(100, Math.min(9900, Math.floor(n)));
+    const portions = Math.max(1, Math.min(99, Math.floor(pc / 100)));
+    setScaleFactor(clampFactor(portions / basePortions));
   };
 
   return {

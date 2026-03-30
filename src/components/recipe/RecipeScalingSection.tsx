@@ -80,8 +80,8 @@ export function RecipeScalingSection({
               type="button"
               className={STEPPER_BTN_CLASS}
               disabled={isScaleAtFloor}
-              onClick={() => onPercentInput(displayPercent - 5)}
-              aria-label="Fünf Prozent weniger"
+              onClick={() => onPercentInput(displayPercent - 100)}
+              aria-label="Hundert Prozent weniger"
             >
               −
             </button>
@@ -89,12 +89,11 @@ export function RecipeScalingSection({
               <input
                 className="w-full min-w-0 bg-transparent py-0 pl-2 pr-6 text-center font-headline text-lg font-bold tabular-nums text-on-surface [appearance:textfield] focus:outline-none focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 type="number"
-                inputMode="decimal"
-                min={1}
+                inputMode="numeric"
+                min={100}
                 value={displayPercent}
                 onChange={(e) => {
-                  const raw = e.target.value.replace(",", ".");
-                  const v = parseFloat(raw);
+                  const v = parseInt(e.target.value, 10);
                   if (Number.isNaN(v)) return;
                   onPercentInput(v);
                 }}
@@ -111,8 +110,8 @@ export function RecipeScalingSection({
               type="button"
               className={STEPPER_BTN_CLASS}
               disabled={isScaleAtCeiling}
-              onClick={() => onPercentInput(displayPercent + 5)}
-              aria-label="Fünf Prozent mehr"
+              onClick={() => onPercentInput(displayPercent + 100)}
+              aria-label="Hundert Prozent mehr"
             >
               +
             </button>

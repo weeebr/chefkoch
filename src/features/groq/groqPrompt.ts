@@ -63,23 +63,8 @@ export function buildUserPrompt(
     line("BATCH_INDEX", String(batch.batchIndex)),
     line("BATCH_TOTAL", String(batch.totalBatches)),
     line("SLOT_RANGE", `${slotStart}–${slotEnd} of ${totalRecipes}`),
-    line(
-      "USE_STARCH_BASE_THIS_SLOT",
-      input.useStarchBaseThisSlot ? "Yes" : "No",
-    ),
-    line("USE_CREATIVE_THIS_SLOT", input.useCreativeThisSlot ? "Yes" : "No"),
-    line(
-      "PREVIOUS_SLOT_USED_STARCH_BASE",
-      input.previousSlotUsedStarchBase == null
-        ? "Unknown"
-        : input.previousSlotUsedStarchBase
-          ? "Yes"
-          : "No",
-    ),
-    line(
-      "PREVIOUS_SLOT_CREATIVE_MODE",
-      input.previousSlotCreativeMode ?? "Unknown",
-    ),
+    line("USE_SLOT_MODE_THIS_SLOT", input.useSlotModeThisSlot ?? "else"),
+    line("USE_STYLE_MODE_THIS_SLOT", input.useStyleModeThisSlot ?? "common"),
   ];
 
   for (const p of input.pantryLines) {
