@@ -429,8 +429,7 @@ export function RecipeDetailScreen({
         </section>
       ) : null}
 
-      <footer className="mt-16 border-t border-outline-variant/20 pt-8">
-        <div className="mb-8" />
+      <footer className="mt-10 border-t border-outline-variant/20 pt-4">
         {bookmarkAddedAt ? (
           <div className="flex justify-end">
             <span className="font-label text-[10px] uppercase tracking-widest opacity-40">

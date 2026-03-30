@@ -52,7 +52,7 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
         })}
       </nav>
       <div
-        className="h-[calc(7.25rem+env(safe-area-inset-bottom,0px))] shrink-0"
+        className="h-[calc(5.75rem+env(safe-area-inset-bottom,0px))] shrink-0"
         aria-hidden
       />
     </>
