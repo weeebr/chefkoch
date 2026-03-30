@@ -3,11 +3,6 @@ import { resolve } from "node:path";
 import { generateRecipeOnceWithGroqJsonSchema } from "../src/server/groqGenerateRecipe";
 import { generateRecipeRequestSchema } from "../src/server/groqGenerateRecipeRequest";
 
-const PROMPT_SOURCE = readFileSync(
-  resolve("src/features/groq/recipe-api-persona.md"),
-  "utf-8",
-);
-
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -22,6 +17,29 @@ function jsonResponse(status: number, body: unknown): Response {
       "Content-Type": "application/json; charset=utf-8",
     },
   });
+}
+
+let cachedPromptSource: string | null = null;
+
+function getPromptSource(): string {
+  if (cachedPromptSource) return cachedPromptSource;
+  const candidates = [
+    resolve("src/features/groq/recipe-api-persona.md"),
+    resolve(process.cwd(), "src/features/groq/recipe-api-persona.md"),
+    resolve("/var/task/src/features/groq/recipe-api-persona.md"),
+  ];
+  for (const p of candidates) {
+    try {
+      const text = readFileSync(p, "utf-8");
+      if (text.trim().length > 0) {
+        cachedPromptSource = text;
+        return text;
+      }
+    } catch {
+      // Try the next candidate path.
+    }
+  }
+  throw new Error("Prompt source file not found in runtime.");
 }
 
 export default async function handler(request: Request): Promise<Response> {
@@ -57,6 +75,7 @@ export default async function handler(request: Request): Promise<Response> {
   }
 
   try {
+    const promptSource = getPromptSource();
     const result = await generateRecipeOnceWithGroqJsonSchema(
       apiKey,
       {
@@ -69,12 +88,13 @@ export default async function handler(request: Request): Promise<Response> {
         generationIndex: requestData.generationIndex,
         totalRecipesToGenerate: requestData.totalRecipesToGenerate,
       },
-      PROMPT_SOURCE,
+      promptSource,
     );
 
     return jsonResponse(200, result);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Groq generation failed.";
-    return jsonResponse(400, { error: { message: msg } });
+    const status = /Prompt source file not found/i.test(msg) ? 500 : 400;
+    return jsonResponse(status, { error: { message: msg } });
   }
 }
