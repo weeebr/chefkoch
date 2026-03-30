@@ -3,7 +3,7 @@
  * OWNERSHIP: persist data + validate persisted shape only.
  * FORBIDDEN: Swiss normalization, AI text mutation, or any recipe text transformation.
  */
-import { APP_STATE_KEY } from "../config/storageKeys";
+import { APP_STATE_KEY, GROQ_API_KEY_STORAGE_KEY } from "../config/storageKeys";
 import { ICON_CATEGORIES } from "../types";
 import { cloneDefaultState, defaultAppState } from "./seed/defaultState";
 import type { AppState } from "./schema";
@@ -78,7 +78,7 @@ function isValidState(raw: unknown): raw is AppState {
   if (!isStringArray(raw.selectedPantryIds)) return false;
   if (!isRecord(raw.recipeRequiredPantryIds)) return false;
   if (!isRecord(raw.recipeRequiredPantryNames)) return false;
-  if (typeof raw.groqApiKey !== "string") return false;
+  if (raw.groqApiKey !== undefined && typeof raw.groqApiKey !== "string") return false;
   if (typeof raw.shoppingLocationLabel !== "string") return false;
   if (!isStringArray(raw.bookmarkedRecipeIds)) return false;
   if (
@@ -126,10 +126,11 @@ function isValidState(raw: unknown): raw is AppState {
 }
 
 export function loadPersistedState(): AppState {
+  const persistedGroqApiKey = loadPersistedGroqApiKey();
   try {
     const raw = localStorage.getItem(APP_STATE_KEY);
     if (!raw) {
-      return cloneDefaultState();
+      return { ...cloneDefaultState(), groqApiKey: persistedGroqApiKey };
     }
     const parsed = JSON.parse(raw) as unknown;
     if (!isValidState(parsed)) {
@@ -147,26 +148,49 @@ export function loadPersistedState(): AppState {
     const recipeDetails = base.recipeDetails;
     return {
       ...base,
+      groqApiKey: persistedGroqApiKey,
       recipeDetails,
       bookmarkAddedAtByRecipeId,
     };
   } catch {
-    return cloneDefaultState();
+    return { ...cloneDefaultState(), groqApiKey: persistedGroqApiKey };
   }
 }
 
 export function savePersistedState(state: AppState): void {
   try {
-    localStorage.setItem(APP_STATE_KEY, JSON.stringify(state));
+    const { groqApiKey: _apiKey, ...rest } = state;
+    localStorage.setItem(APP_STATE_KEY, JSON.stringify(rest));
+    savePersistedGroqApiKey(state.groqApiKey);
   } catch {
     // ignore quota / private mode
   }
 }
 
 export function resetPersistedState(): AppState {
-  const fresh = cloneDefaultState();
+  const fresh = {
+    ...cloneDefaultState(),
+    groqApiKey: loadPersistedGroqApiKey(),
+  };
   savePersistedState(fresh);
   return fresh;
+}
+
+function loadPersistedGroqApiKey(): string {
+  try {
+    const v = localStorage.getItem(GROQ_API_KEY_STORAGE_KEY);
+    return typeof v === "string" ? v : "";
+  } catch {
+    return "";
+  }
+}
+
+function savePersistedGroqApiKey(key: string): void {
+  try {
+    localStorage.setItem(GROQ_API_KEY_STORAGE_KEY, key);
+  } catch {
+    // ignore quota / private mode
+  }
 }
 
 /** Dev / tests: restore factory defaults without touching localStorage. */
