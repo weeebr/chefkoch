@@ -1,5 +1,9 @@
+/**
+ * Persistence layer: save/load AppState from localStorage.
+ * OWNERSHIP: persist data + validate persisted shape only.
+ * FORBIDDEN: Swiss normalization, AI text mutation, or any recipe text transformation.
+ */
 import { APP_STATE_KEY } from "../config/storageKeys";
-import { normalizeSwissGroqText } from "../features/groq/swissDisplayText";
 import { ICON_CATEGORIES } from "../types";
 import { cloneDefaultState, defaultAppState } from "./seed/defaultState";
 import type { AppState } from "./schema";
@@ -29,7 +33,7 @@ function isValidRecipeMethodStep(v: unknown): boolean {
 function isValidRecipeDetail(v: unknown): boolean {
   if (!isRecord(v)) return false;
   if (typeof v.id !== "string" || typeof v.title !== "string") return false;
-  if (typeof v.prepMinutes !== "number" || typeof v.cookMinutes !== "number") return false;
+  if (typeof v.minutes !== "number" || !Number.isFinite(v.minutes)) return false;
   if (typeof v.basePortions !== "number" || typeof v.defaultScalingId !== "string") return false;
   if (typeof v.lastUpdatedLabel !== "string") return false;
   if (!Array.isArray(v.scalingModes)) return false;
@@ -135,8 +139,13 @@ export function loadPersistedState(): AppState {
       ? ((parsed as { bookmarkAddedAtByRecipeId: Record<string, string> })
           .bookmarkAddedAtByRecipeId ?? {})
       : {};
+    const base = parsed as AppState;
+    // Storage must not transform/sanitize already-generated recipe display strings.
+    // Persisted label values are treated as-is.
+    const recipeDetails = base.recipeDetails;
     return {
-      ...(parsed as AppState),
+      ...base,
+      recipeDetails,
       bookmarkAddedAtByRecipeId,
     };
   } catch {
@@ -146,8 +155,7 @@ export function loadPersistedState(): AppState {
 
 export function savePersistedState(state: AppState): void {
   try {
-    const normalized = normalizeStringsDeep(state);
-    localStorage.setItem(APP_STATE_KEY, JSON.stringify(normalized));
+    localStorage.setItem(APP_STATE_KEY, JSON.stringify(state));
   } catch {
     // ignore quota / private mode
   }
@@ -165,21 +173,3 @@ export function getDefaultStateSnapshot(): AppState {
 }
 
 export { defaultAppState };
-
-function normalizeStringsDeep<T>(value: T): T {
-  if (typeof value === "string") {
-    return normalizeSwissGroqText(value) as T;
-  }
-  if (Array.isArray(value)) {
-    return value.map((item) => normalizeStringsDeep(item)) as T;
-  }
-  if (value && typeof value === "object") {
-    const obj = value as Record<string, unknown>;
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(obj)) {
-      out[k] = normalizeStringsDeep(v);
-    }
-    return out as T;
-  }
-  return value;
-}

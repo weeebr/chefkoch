@@ -1,3 +1,8 @@
+/**
+ * Policy enforcement on validated Groq output.
+ * OWNERSHIP: backend post-fetch pipeline only.
+ * FORBIDDEN: client-side import or usage.
+ */
 import { baseStapleDisplayNameFromComponent } from "../../data/basePantry";
 import { normalizeIngredientLabel } from "../../data/ingredientLabel";
 import type { GroqIngredientLine, GroqRecipeJson } from "./groqTypes";
@@ -108,6 +113,7 @@ export function normalizeGroqRecipeForPolicy(
     };
   }
 
+  const filteredSpices = filterIngredientsBySelection(jStripped.spices, requiredNames);
   const { shoppingHints: _sh, optionalUpgradeNote: _ou, ...rest } = jStripped;
 
   return {
@@ -115,5 +121,6 @@ export function normalizeGroqRecipeForPolicy(
     // Ensure we use all selected chips at least once in the visible ingredient list.
     ingredientsOnHand: ensuredOnHand,
     ingredientsShopping: [],
+    spices: filteredSpices,
   };
 }

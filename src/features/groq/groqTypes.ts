@@ -42,9 +42,8 @@ export type GroqIngredientLine = {
 /** Parsed from model; maps to `RecipeDetail` / `RecipeListRow`. */
 export type GroqRecipeJson = {
   title: string;
-  minutes?: number;
-  prepMinutes?: number;
-  cookMinutes?: number;
+  /** Total minutes from start to serve (prep, cooking, resting as needed). */
+  minutes: number;
   /** Intended servings / portions the listed quantities refer to (default 4 in mapper). */
   servings?: number;
   tag?: string;
@@ -78,4 +77,17 @@ export type GroqStepLine = {
   order: number;
   title: string;
   body: string;
+};
+
+/**
+ * Typed result returned by the backend after validation, sanitization, and mapping.
+ * The client receives this shape — never raw GroqRecipeJson.
+ */
+export type GeneratedRecipeResult = {
+  id: string;
+  detail: import("../../types").RecipeDetail;
+  listRow: import("../../types").RecipeListRow;
+  tag: string;
+  totalTokens?: number;
+  finishReason?: string;
 };

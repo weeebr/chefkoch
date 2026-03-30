@@ -1,57 +1,55 @@
+/**
+ * Merges backend-typed recipe results into AppState.
+ * OWNERSHIP: state assembly from typed backend payloads only.
+ * FORBIDDEN: accepting GroqRecipeJson, calling groqJsonTo* mappers,
+ * or performing any AI output transformation/sanitization.
+ */
 import type { AppState } from "../../data/schema";
 import { pruneNonBookmarkedRecipes } from "../../data/pruneRecipes";
-import {
-  groqJsonToListRow,
-  groqJsonToRecipeDetail,
-  groqJsonToTag,
-} from "./groqMap";
-import { normalizeGroqRecipeForPolicy } from "./groqPolicy";
-import type { GroqRecipeJson } from "./groqTypes";
+import type { RecipeDetail, RecipeListRow } from "../../types";
+
+export type TypedRecipePayload = {
+  id: string;
+  detail: RecipeDetail;
+  listRow: RecipeListRow;
+  tag: string;
+};
 
 export type GeneratedRecipesPayload = {
-  recipes: GroqRecipeJson[];
-  /** Snapshot of selected chips at generation start; used as source of truth for persisted matching metadata. */
+  recipes: TypedRecipePayload[];
   selectedPantry: Array<{ id: string; name: string }>;
-  /** When false, shopping lists and purchase hints are stripped before mapping. */
-  willingToShop: boolean;
 };
 
 function appendGeneratedRecipes(
   prev: AppState,
   payload: GeneratedRecipesPayload,
 ): AppState {
-  const { recipes, selectedPantry, willingToShop } = payload;
+  const { recipes, selectedPantry } = payload;
   let next: AppState = prev;
   const selectedPantryIds = selectedPantry.map((x) => x.id);
   const selectedPantryNames = selectedPantry.map((x) => x.name);
   const newIds: string[] = [];
 
-  for (const json of recipes) {
-    const normalized = normalizeGroqRecipeForPolicy(
-      json,
-      willingToShop,
-      selectedPantryNames,
-    );
-    const id = crypto.randomUUID();
-    newIds.push(id);
+  for (const recipe of recipes) {
+    newIds.push(recipe.id);
     next = {
       ...next,
-      recipeRows: [...next.recipeRows, groqJsonToListRow(id, normalized)],
+      recipeRows: [...next.recipeRows, recipe.listRow],
       recipeDetails: {
         ...next.recipeDetails,
-        [id]: groqJsonToRecipeDetail(id, normalized),
+        [recipe.id]: recipe.detail,
       },
       recipeRequiredPantryIds: {
         ...next.recipeRequiredPantryIds,
-        [id]: [...selectedPantryIds],
+        [recipe.id]: [...selectedPantryIds],
       },
       recipeRequiredPantryNames: {
         ...next.recipeRequiredPantryNames,
-        [id]: [...selectedPantryNames],
+        [recipe.id]: [...selectedPantryNames],
       },
       recipeCardExtras: {
         ...next.recipeCardExtras,
-        [id]: { tag: groqJsonToTag(normalized) },
+        [recipe.id]: { tag: recipe.tag },
       },
     };
   }

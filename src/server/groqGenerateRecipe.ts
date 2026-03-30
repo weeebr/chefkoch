@@ -1,15 +1,34 @@
+/**
+ * Backend recipe generation: prompt boundary + trust-boundary validation +
+ * single sanitization/mapping pass. Returns fully typed data to the client.
+ * OWNERSHIP: generation, validation, sanitization, mapping (all backend-only).
+ */
 import {
-  buildJsonRecipeOrchestrationSystemPrompt,
-  buildOneShotJsonRecipeUserPrompt,
+  buildSystemPrompt,
+  buildUserPrompt,
 } from "../features/groq/groqPrompt";
 import type {
+  GeneratedRecipeResult,
   RecipeGenerationPantryLine,
-  GroqRecipeJson,
 } from "../features/groq/groqTypes";
+import { randomUUID } from "node:crypto";
 import {
   groqRecipeContractSchema,
   getGroqRecipeJsonSchema,
 } from "./groqRecipeContractSchema";
+import { normalizeGroqRecipeForPolicy } from "../features/groq/groqPolicy";
+import {
+  groqJsonToRecipeDetail,
+  groqJsonToListRow,
+  groqJsonToTag,
+} from "../features/groq/groqMap";
+import {
+  collapseStepWhitespace,
+  sanitizeStepSpiceMentions,
+} from "../features/groq/stepSpiceGuard";
+import {
+  normalizeGroqRecipeJsonForBackendSanitization,
+} from "../features/groq/swissDisplayText";
 
 const GROQ_MODEL = "moonshotai/kimi-k2-instruct-0905";
 
@@ -78,7 +97,6 @@ async function postGroqChatStructured(
       ],
       temperature: 0.35,
       max_tokens: 12_000,
-      // Structured outputs: provider enforces JSON schema on supported models.
       response_format: {
         type: "json_schema",
         json_schema: {
@@ -123,19 +141,24 @@ async function postGroqChatStructured(
   };
 }
 
+/**
+ * Full generation pipeline:
+ *   prompt build -> Groq call -> Zod parse once -> sanitize once -> map once
+ *
+ * @param promptSource  Raw content of recipe-api-persona.md (canonical prompt).
+ *                      Callers read the file using their platform's mechanism
+ *                      (readFileSync in Node / bundled in edge).
+ */
 export async function generateRecipeOnceWithGroqJsonSchema(
   apiKey: string,
   req: GenerateRecipeRequest,
-): Promise<{
-  recipe: GroqRecipeJson;
-  totalTokens?: number;
-  finishReason?: string;
-}> {
+  promptSource: string,
+): Promise<GeneratedRecipeResult> {
   const trimmedKey = apiKey.trim();
   if (!trimmedKey) throw new Error("Fehlender GROQ_API_KEY (Server).");
 
-  const system = buildJsonRecipeOrchestrationSystemPrompt();
-  const user = buildOneShotJsonRecipeUserPrompt(
+  const system = buildSystemPrompt(promptSource, req.willingToShop);
+  const user = buildUserPrompt(
     {
       pantryLines: req.pantryLines,
       willingToShop: req.willingToShop,
@@ -158,7 +181,7 @@ export async function generateRecipeOnceWithGroqJsonSchema(
     throw new Error("Leere Antwort von Groq.");
   }
 
-  // Never trust JSON.parse by itself: always validate with Zod once.
+  // --- Trust boundary: parse + validate exactly once ---
   let parsedJson: unknown;
   try {
     parsedJson = JSON.parse(content);
@@ -170,7 +193,6 @@ export async function generateRecipeOnceWithGroqJsonSchema(
 
   const result = groqRecipeContractSchema.safeParse(parsedJson);
   if (!result.success) {
-    // Include a compact hint, but avoid dumping the full payload.
     const first = result.error.issues[0];
     const issue = first
       ? `${first.path.join(".")}: ${first.message}`
@@ -180,6 +202,46 @@ export async function generateRecipeOnceWithGroqJsonSchema(
     );
   }
 
+  // --- Single sanitization + mapping pass (immediately after validation) ---
+  const allowedPantryNames = req.pantryLines.map((p) => p.name);
+  const policyEnforced = normalizeGroqRecipeForPolicy(
+    result.data,
+    req.willingToShop,
+    allowedPantryNames,
+  );
+
+  // --- Single sanitization pass (step guard + Swiss orthography) ---
+  const swissNormalized = normalizeGroqRecipeJsonForBackendSanitization(
+    policyEnforced,
+  );
+  const steps = (swissNormalized.steps ?? []).map((s) => {
+    const rawTitle = s.title;
+    const rawBody = s.body;
+
+    const title = collapseStepWhitespace(
+      sanitizeStepSpiceMentions(swissNormalized, rawTitle),
+    );
+    const body = collapseStepWhitespace(
+      sanitizeStepSpiceMentions(swissNormalized, rawBody),
+    );
+
+    return {
+      ...s,
+      title: title || rawTitle,
+      body: body || rawBody,
+    };
+  });
+
+  const sanitizedForMapping = {
+    ...swissNormalized,
+    steps,
+  };
+
+  const id = randomUUID();
+  const detail = groqJsonToRecipeDetail(id, sanitizedForMapping);
+  const listRow = groqJsonToListRow(id, sanitizedForMapping);
+  const tag = groqJsonToTag(sanitizedForMapping);
   const totalTokens = extractTotalTokens(raw);
-  return { recipe: result.data, totalTokens, finishReason };
+
+  return { id, detail, listRow, tag, totalTokens, finishReason };
 }

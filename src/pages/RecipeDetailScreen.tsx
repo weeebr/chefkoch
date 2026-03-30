@@ -50,12 +50,8 @@ export function RecipeDetailScreen({
   backLabel,
 }: RecipeDetailScreenProps) {
   const { state } = useAppData();
-  const {
-    bookmarked,
-    toggleBookmark,
-    feedbackMessage: bookmarkFeedback,
-    bookmarkAriaLabel,
-  } = useBookmarkRecipe(recipeId);
+  const { bookmarked, toggleBookmark, feedbackMessage, bookmarkAriaLabel } =
+    useBookmarkRecipe(recipeId);
   const detail = useMemo(() => {
     const d = state.recipeDetails[recipeId];
     if (!d) {
@@ -66,7 +62,7 @@ export function RecipeDetailScreen({
   const detailTag = state.recipeCardExtras[recipeId]?.tag?.trim() || "";
   const bookmarkAddedAt = state.bookmarkAddedAtByRecipeId[recipeId];
   const dynamicLinksHint =
-    "Zuvor ausgewählte Zutaten wirken sich dynamisch auf die Zutatenliste aller Rezepte aus. Je nach dem, ob eine Zutat ausgewählt wurde oder nicht, erscheint sie in der Liste 'Einkaufen' oder 'Zutaten'.";
+    "Je nach dem, ob eine Zutat davor ausgewählt wurde oder nicht, erscheint sie dynamisch in der Liste 'Einkaufen' oder 'Zutaten'.";
 
   const {
     setScalingId,
@@ -75,8 +71,9 @@ export function RecipeDetailScreen({
     basePortions,
     displayPortions,
     displayPercent,
-    displayIngredients,
-    displaySpices,
+    displayMergedIngredientRows,
+    isScaleAtFloor,
+    isScaleAtCeiling,
     setPortionsFromInput,
     setPercentFromInput,
   } = useRecipeScaling(detail, recipeId);
@@ -97,37 +94,28 @@ export function RecipeDetailScreen({
     return out;
   }, [detail.shoppingAlternativesNote]);
 
-  const [shoppingDisplayIngredients, selectedDisplayIngredients] =
-    useMemo(() => {
-      const pantryById = new Map(state.pantry.map((p) => [p.id, p]));
-      const selectedIds = new Set(state.selectedPantryIds);
-      return splitShoppingAndSelectedDisplayRows(
-        detail.ingredients,
-        displayIngredients,
-        pantryById,
-        selectedIds,
-      );
-    }, [
-      detail.ingredients,
-      displayIngredients,
-      state.pantry,
-      state.selectedPantryIds,
-    ]);
+  const mergedIngredientRows = useMemo(
+    () => [...detail.ingredients, ...detail.spices],
+    [detail.ingredients, detail.spices],
+  );
 
-  const [shoppingDisplaySpices, selectedDisplaySpices] = useMemo(() => {
+  const [shoppingDisplayRows, selectedDisplayRows] = useMemo(() => {
     const pantryById = new Map(state.pantry.map((p) => [p.id, p]));
     const selectedIds = new Set(state.selectedPantryIds);
     return splitShoppingAndSelectedDisplayRows(
-      detail.spices,
-      displaySpices,
+      mergedIngredientRows,
+      displayMergedIngredientRows,
       pantryById,
       selectedIds,
     );
-  }, [detail.spices, displaySpices, state.pantry, state.selectedPantryIds]);
+  }, [
+    mergedIngredientRows,
+    displayMergedIngredientRows,
+    state.pantry,
+    state.selectedPantryIds,
+  ]);
 
-  const isFullMatch =
-    shoppingDisplayIngredients.length === 0 &&
-    shoppingDisplaySpices.length === 0;
+  const isFullMatch = shoppingDisplayRows.length === 0;
   const accentTextClass = isFullMatch
     ? "text-secondary-dim"
     : "text-primary-dim";
@@ -199,71 +187,68 @@ export function RecipeDetailScreen({
             />
           </button>
         </div>
-        {bookmarkFeedback ? (
+        {feedbackMessage ? (
           <p
             className="mb-4 text-sm font-medium text-primary"
             role="status"
             aria-live="polite"
           >
-            {bookmarkFeedback}
+            {feedbackMessage}
           </p>
         ) : null}
         <div className="space-y-2.5 border-y border-outline-variant/15 py-4">
-          <div className="grid grid-cols-2 gap-2">
+          {detail.equipmentNote ? (
+            <div className="flex flex-row flex-nowrap gap-2">
+              <div className="flex-none rounded-xl border border-outline-variant/15 bg-surface-container-low/45 px-2.5 py-2">
+                <p className="font-label text-[10px] font-medium uppercase tracking-[0.14em] text-on-surface-variant/80">
+                  Gesamtzeit
+                </p>
+                <p className="mt-0.5 font-body text-sm font-medium text-on-surface/90">
+                  {formatMinutes(detail.minutes)}
+                </p>
+              </div>
+              <div className="min-w-0 flex-1 rounded-xl border border-outline-variant/15 bg-surface-container-low/45 px-2.5 py-2">
+                <p className="font-label text-[10px] font-medium uppercase tracking-[0.14em] text-on-surface-variant/80">
+                  Setup
+                </p>
+                <p className="mt-0.5 font-body text-sm leading-snug text-on-surface/85">
+                  {detail.equipmentNote}
+                </p>
+              </div>
+            </div>
+          ) : (
             <div className="rounded-xl border border-outline-variant/15 bg-surface-container-low/45 px-2.5 py-2">
               <p className="font-label text-[10px] font-medium uppercase tracking-[0.14em] text-on-surface-variant/80">
-                Vorbereitung
+                Gesamtzeit
               </p>
               <p className="mt-0.5 font-body text-sm font-medium text-on-surface/90">
-                {formatMinutes(detail.prepMinutes)}
+                {formatMinutes(detail.minutes)}
               </p>
             </div>
+          )}
+          {detail.nutritionNote ? (
             <div className="rounded-xl border border-outline-variant/15 bg-surface-container-low/45 px-2.5 py-2">
               <p className="font-label text-[10px] font-medium uppercase tracking-[0.14em] text-on-surface-variant/80">
-                Kochzeit
+                Balance
               </p>
-              <p className="mt-0.5 font-body text-sm font-medium text-on-surface/90">
-                {formatMinutes(detail.cookMinutes)}
+              <p className="mt-0.5 font-body text-sm leading-snug text-on-surface/85">
+                {detail.nutritionNote}
               </p>
-            </div>
-          </div>
-          {detail.equipmentNote || detail.nutritionNote ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {detail.equipmentNote ? (
-                <div className="rounded-xl border border-outline-variant/15 bg-surface-container-low/45 px-2.5 py-2">
-                  <p className="font-label text-[10px] font-medium uppercase tracking-[0.14em] text-on-surface-variant/80">
-                    Setup
-                  </p>
-                  <p className="mt-0.5 font-body text-sm leading-snug text-on-surface/85">
-                    {detail.equipmentNote}
-                  </p>
-                </div>
-              ) : null}
-              {detail.nutritionNote ? (
-                <div className="rounded-xl border border-outline-variant/15 bg-surface-container-low/45 px-2.5 py-2">
-                  <p className="font-label text-[10px] font-medium uppercase tracking-[0.14em] text-on-surface-variant/80">
-                    Balance
-                  </p>
-                  <p className="mt-0.5 font-body text-sm leading-snug text-on-surface/85">
-                    {detail.nutritionNote}
-                  </p>
-                </div>
-              ) : null}
             </div>
           ) : null}
         </div>
       </section>
 
       <section className="mb-12">
-        {shoppingDisplayIngredients.length > 0 ? (
+        {shoppingDisplayRows.length > 0 ? (
           <h3 className="mb-6 flex items-center gap-2 font-headline text-xl font-bold text-primary-dim">
             <MaterialIcon name="shopping_cart" className="text-primary-dim" />
             Einkaufen
           </h3>
         ) : null}
-        {shoppingDisplayIngredients.length > 0 ? (
+        {shoppingDisplayRows.length > 0 ? (
           <div
-            className={`mb-4 overflow-hidden ${ingredientShoppingWarmPanelClass}`}
+            className={`mb-10 overflow-hidden ${ingredientShoppingWarmPanelClass}`}
           >
             <table className="w-full border-collapse text-left">
               <thead>
@@ -282,9 +267,9 @@ export function RecipeDetailScreen({
               <tbody
                 className={`${ingredientShoppingTableBodyDivideClass} bg-surface-container-lowest/90`}
               >
-                {shoppingDisplayIngredients.map((row, i) => (
+                {shoppingDisplayRows.map((row, i) => (
                   <tr
-                    key={`${row.component}-shopping-${i}`}
+                    key={`${normalizeIngredientLabel(row.component)}-${i}-shopping`}
                     className="even:bg-primary/5"
                   >
                     <td className="px-6 py-4 text-sm text-on-surface">
@@ -318,7 +303,7 @@ export function RecipeDetailScreen({
           </div>
         ) : null}
 
-        {selectedDisplayIngredients.length > 0 ||
+        {selectedDisplayRows.length > 0 ||
         detail.requiredBaseStaples.length > 0 ? (
           <h3 className="mb-6 flex items-center justify-between gap-2 font-headline text-xl font-bold text-on-surface">
             <span className="inline-flex items-center gap-2">
@@ -343,7 +328,7 @@ export function RecipeDetailScreen({
           </div>
         ) : null}
 
-        {selectedDisplayIngredients.length > 0 ? (
+        {selectedDisplayRows.length > 0 ? (
           <div className={`overflow-hidden ${ingredientWarmPanelClass}`}>
             <table className="w-full border-collapse text-left">
               <thead>
@@ -357,9 +342,9 @@ export function RecipeDetailScreen({
                 </tr>
               </thead>
               <tbody className="divide-y divide-secondary/10 bg-surface-container-lowest/90">
-                {selectedDisplayIngredients.map((row, i) => (
+                {selectedDisplayRows.map((row, i) => (
                   <tr
-                    key={`${row.component}-selected-${i}`}
+                    key={`${normalizeIngredientLabel(row.component)}-${i}-selected`}
                     className="even:bg-secondary/5"
                   >
                     <td className="px-6 py-4 text-sm text-on-surface">
@@ -376,127 +361,15 @@ export function RecipeDetailScreen({
             </table>
           </div>
         ) : null}
-        {resolvedMode === "percent" ? (
-          <p className="mt-3 font-body text-xs leading-relaxed text-on-surface-variant">
-            Anteile schätzen die Mengenverhältnisse aus den Zahlenangaben im
-            Rezept (einheitliche Skala nur zum Vergleich; gemischte Einheiten
-            sind näherungsweise).
-          </p>
-        ) : null}
       </section>
-
-      {detail.spices.length > 0 ? (
-        <section className="mb-12">
-          {shoppingDisplaySpices.length > 0 ? (
-            <h3 className="mb-6 flex items-center gap-2 font-headline text-xl font-bold text-primary-dim">
-              <MaterialIcon name="shopping_cart" className="text-primary-dim" />
-              Einkaufen
-            </h3>
-          ) : null}
-          {shoppingDisplaySpices.length > 0 ? (
-            <div
-              className={`mb-4 overflow-hidden ${ingredientShoppingWarmPanelClass}`}
-            >
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className={ingredientShoppingTableHeaderRowClass}>
-                    <th className="px-6 py-4 font-label text-[10px] font-bold uppercase tracking-widest text-on-surface">
-                      <span>Zutat</span>{" "}
-                      <span className="font-body text-xs font-normal normal-case tracking-normal text-on-surface-variant/80">
-                        {"→"} Alternative
-                      </span>
-                    </th>
-                    <th className="px-6 py-4 text-right font-label text-[10px] font-bold uppercase tracking-widest text-on-surface">
-                      {resolvedMode === "percent" ? "Anteil" : "Menge"}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody
-                  className={`${ingredientShoppingTableBodyDivideClass} bg-surface-container-lowest/90`}
-                >
-                  {shoppingDisplaySpices.map((row, i) => (
-                    <tr
-                      key={`${row.component}-spice-shopping-${i}`}
-                      className="even:bg-primary/5"
-                    >
-                      <td className="px-6 py-4 text-sm text-on-surface">
-                        {(() => {
-                          const key = normalizeIngredientLabel(row.component);
-                          const alt = alternativesByIngredient.get(key);
-                          if (!alt) {
-                            return (
-                              <p className="font-headline text-sm font-bold text-on-surface">
-                                {row.component}
-                              </p>
-                            );
-                          }
-                          return (
-                            <p className="font-headline text-sm font-bold text-on-surface">
-                              {row.component}{" "}
-                              <span className="font-body text-xs font-normal text-on-surface-variant/80">
-                                {"→"} {alt}
-                              </span>
-                            </p>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-6 py-4 text-right font-headline text-sm font-bold text-on-surface">
-                        {row.quantity}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
-          {selectedDisplaySpices.length > 0 ? (
-            <h3 className="mb-6 flex items-center gap-2 font-headline text-xl font-bold text-on-surface">
-              <MaterialIcon name="kitchen" className="text-secondary-dim" />
-              Zutaten
-            </h3>
-          ) : null}
-          {selectedDisplaySpices.length > 0 ? (
-            <div className={`overflow-hidden ${ingredientWarmPanelClass}`}>
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className={ingredientTableHeaderRowClass}>
-                    <th className="px-6 py-4 font-label text-[10px] font-bold uppercase tracking-widest text-on-surface">
-                      Zutat
-                    </th>
-                    <th className="px-6 py-4 text-right font-label text-[10px] font-bold uppercase tracking-widest text-on-surface">
-                      {resolvedMode === "percent" ? "Anteil" : "Menge"}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-secondary/10 bg-surface-container-lowest/90">
-                  {selectedDisplaySpices.map((row, i) => (
-                    <tr
-                      key={`${row.component}-spice-selected-${i}`}
-                      className="even:bg-secondary/5"
-                    >
-                      <td className="px-6 py-4 text-sm text-on-surface">
-                        <p className="font-headline text-sm font-bold text-on-surface">
-                          {row.component}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 text-right font-headline text-sm font-bold text-on-surface">
-                        {row.quantity}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
 
       <RecipeScalingSection
         detail={detail}
         resolvedMode={resolvedMode}
-        basePortions={basePortions}
         displayPortions={displayPortions}
         displayPercent={displayPercent}
+        isScaleAtFloor={isScaleAtFloor}
+        isScaleAtCeiling={isScaleAtCeiling}
         onScalingModeChange={(id) => setScalingId(id)}
         onPortionsInput={setPortionsFromInput}
         onPercentInput={setPercentFromInput}

@@ -6,8 +6,8 @@ import { MaterialIcon } from "./MaterialIcon";
 type CategoryIconSelectProps = {
   value: IconCategory;
   onChange: (c: IconCategory) => void;
-  /** For label association (Neue Zutat form). */
-  id?: string;
+  /** DOM id for the toggle button (label association). */
+  buttonId?: string;
   /** Button surface — match form fields. */
   buttonClassName: string;
   /** z-index for open list above table rows. */
@@ -17,13 +17,13 @@ type CategoryIconSelectProps = {
 export function CategoryIconSelect({
   value,
   onChange,
-  id: idProp,
+  buttonId,
   buttonClassName,
   listZClass = "z-20",
 }: CategoryIconSelectProps) {
   const autoId = useId();
-  const buttonId = idProp ?? autoId;
-  const listId = `${buttonId}-listbox`;
+  const controlId = buttonId ?? autoId;
+  const listId = `${controlId}-listbox`;
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +48,7 @@ export function CategoryIconSelect({
     <div className="relative min-w-0" ref={wrapRef}>
       <button
         type="button"
-        id={buttonId}
+        id={controlId}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
@@ -69,7 +69,7 @@ export function CategoryIconSelect({
         <ul
           id={listId}
           role="listbox"
-          aria-labelledby={buttonId}
+          aria-labelledby={controlId}
           className={`absolute left-0 right-0 top-full mt-1 max-h-60 overflow-auto rounded-xl border border-outline-variant/20 bg-surface-container-lowest py-1 ${listZClass}`}
         >
           {ICON_CATEGORIES.map((c) => {

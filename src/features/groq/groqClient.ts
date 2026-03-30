@@ -1,11 +1,6 @@
 import { recordGroqApiUsage } from "./groqTpmMinuteStore";
-import type { GroqRecipeJson, RecipeGenerationInput } from "./groqTypes";
-
-type GenerateRecipeResponse = {
-  recipe: GroqRecipeJson;
-  totalTokens?: number;
-  finishReason?: string;
-};
+import type { GeneratedRecipeResult } from "./groqTypes";
+import type { RecipeGenerationInput } from "./groqTypes";
 
 export async function fetchRecipeFromGroqOnce(
   apiKey: string,
@@ -14,7 +9,7 @@ export async function fetchRecipeFromGroqOnce(
     generationIndex: number;
     totalRecipesToGenerate: number;
   },
-): Promise<GroqRecipeJson> {
+): Promise<GeneratedRecipeResult> {
   if (input.pantryLines.length === 0) {
     throw new Error("Wähle mindestens 1 Zutat aus.");
   }
@@ -49,14 +44,15 @@ export async function fetchRecipeFromGroqOnce(
     throw new Error(`Antwort war kein JSON (HTTP ${res.status}).`);
   }
 
-  const raw = parsed as Partial<{ error: { message?: string } }> & Partial<GenerateRecipeResponse>;
+  const raw = parsed as Partial<{ error: { message?: string } }> &
+    Partial<GeneratedRecipeResult>;
   if (!res.ok) {
     const msg = raw.error?.message ?? res.statusText;
     throw new Error(msg);
   }
 
-  if (!raw.recipe || typeof raw.recipe !== "object") {
-    throw new Error("Ungültige Antwort: fehlendes Rezept.");
+  if (!raw.id || !raw.detail || typeof raw.detail !== "object" || !raw.listRow) {
+    throw new Error("Ungültige Antwort: unvollständiges Ergebnis.");
   }
 
   if (raw.totalTokens != null) {
@@ -68,8 +64,7 @@ export async function fetchRecipeFromGroqOnce(
       `[groq] request ${opts.generationIndex + 1}/${opts.totalRecipesToGenerate}: total_tokens missing, finish_reason=${raw.finishReason ?? "?"}`,
     );
   }
-  // Always record usage; undefined totalTokens triggers rolling-average fallback.
   recordGroqApiUsage(Date.now(), raw.totalTokens);
 
-  return raw.recipe as GroqRecipeJson;
+  return raw as GeneratedRecipeResult;
 }

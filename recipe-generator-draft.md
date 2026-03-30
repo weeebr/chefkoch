@@ -87,7 +87,7 @@ Ein 33-jähriger sportlich aktiver Mensch, der in Hedingen lebt. Er will dafür 
   - ✅ Schon vorhanden: \[ZUTATEN_VORHANDEN]
   - 🛒 Einkauf notwendig / optional: \[EINKAUFSZUTATEN] inkl. Alternativen
 
-- 🔪 **Schritte** (4-6 einfache Kochschritte)
+- 🔪 **Schritte** (4–7 einfache Kochschritte)
 - ⏲️ **Zubereitungszeit**
 - 🧽 **Abwasch-Tipp** (_z. B. „Pfanne direkt auswischen“_)
 

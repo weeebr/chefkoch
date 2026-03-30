@@ -1,5 +1,12 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { generateRecipeOnceWithGroqJsonSchema } from "../src/server/groqGenerateRecipe";
 import { generateRecipeRequestSchema } from "../src/server/groqGenerateRecipeRequest";
+
+const PROMPT_SOURCE = readFileSync(
+  resolve("src/features/groq/recipe-api-persona.md"),
+  "utf-8",
+);
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -16,15 +23,6 @@ function jsonResponse(status: number, body: unknown): Response {
     },
   });
 }
-
-/**
- * One-shot recipe generation endpoint:
- * - Groq structured outputs via `response_format: json_schema`
- * - validated once with Zod on the backend
- */
-export const config = {
-  runtime: "edge",
-};
 
 export default async function handler(request: Request): Promise<Response> {
   if (request.method === "OPTIONS")
@@ -59,21 +57,21 @@ export default async function handler(request: Request): Promise<Response> {
   }
 
   try {
-    const recipeResult = await generateRecipeOnceWithGroqJsonSchema(apiKey, {
-      pantryLines: requestData.pantryLines,
-      willingToShop: requestData.willingToShop,
-      regionLabel: requestData.regionLabel,
-      previousRecipeTitles: requestData.previousRecipeTitles,
-      previousRecipeHints: requestData.previousRecipeHints,
-      generationIndex: requestData.generationIndex,
-      totalRecipesToGenerate: requestData.totalRecipesToGenerate,
-    });
+    const result = await generateRecipeOnceWithGroqJsonSchema(
+      apiKey,
+      {
+        pantryLines: requestData.pantryLines,
+        willingToShop: requestData.willingToShop,
+        regionLabel: requestData.regionLabel,
+        previousRecipeTitles: requestData.previousRecipeTitles,
+        previousRecipeHints: requestData.previousRecipeHints,
+        generationIndex: requestData.generationIndex,
+        totalRecipesToGenerate: requestData.totalRecipesToGenerate,
+      },
+      PROMPT_SOURCE,
+    );
 
-    return jsonResponse(200, {
-      recipe: recipeResult.recipe,
-      totalTokens: recipeResult.totalTokens,
-      finishReason: recipeResult.finishReason,
-    });
+    return jsonResponse(200, result);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Groq generation failed.";
     return jsonResponse(400, { error: { message: msg } });

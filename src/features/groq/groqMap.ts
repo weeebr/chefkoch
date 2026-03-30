@@ -1,9 +1,15 @@
+/**
+ * Maps validated GroqRecipeJson to typed RecipeDetail / RecipeListRow.
+ * OWNERSHIP: backend post-fetch pipeline only (sanitization + mapping).
+ * FORBIDDEN: client-side import or usage. These functions must only be called
+ * from the backend after Zod validation.
+ */
 import { baseStapleDisplayNameFromComponent, parseRequiredBaseStaplesFromGroq } from "../../data/basePantry";
 import { normalizeIngredientLabel } from "../../data/ingredientLabel";
 import type { RecipeDetail, RecipeIngredientRow, RecipeListRow, RecipeMethodStep } from "../../types";
 import { cleanupNoteFromGroq } from "./cleanupNote";
 import type { GroqIngredientLine, GroqRecipeJson, GroqStepLine } from "./groqTypes";
-import { normalizeGroqListRow, normalizeGroqRecipeDetail, normalizeSwissGroqText } from "./swissDisplayText";
+// Mappers assume backend already applied step-guard + Swiss orthography normalization.
 
 function normalizedIngredientKey(component: string): string {
   const base = component.split(/[,(]/)[0]?.trim() ?? component.trim();
@@ -40,11 +46,8 @@ function prepBurdenScore(j: GroqRecipeJson): number {
   return Math.max(0, score);
 }
 
-function estimateTimesFromContent(j: GroqRecipeJson): {
-  prep: number;
-  cook: number;
-  total: number;
-} {
+/** Heuristic total minutes when the model omits or breaks `minutes` (rare). */
+function estimateTotalMinutesFromContent(j: GroqRecipeJson): number {
   const onHandCount = ingredientCount(j.ingredientsOnHand);
   const shoppingCount = ingredientCount(j.ingredientsShopping);
   const stepCount = Array.isArray(j.steps) ? Math.max(1, j.steps.length) : 1;
@@ -55,51 +58,14 @@ function estimateTimesFromContent(j: GroqRecipeJson): {
     6,
     8 + Math.ceil(stepCount * 2.5) + Math.floor((onHandCount + shoppingCount) / 3),
   );
-  return { prep, cook, total: prep + cook };
+  return prep + cook;
 }
 
-/** Derive prep / cook / total and fallback robustly when model timings are weak/inconsistent. */
-export function resolveRecipeTimes(j: GroqRecipeJson): {
-  prep: number;
-  cook: number;
-  total: number;
-} {
-  const p = sanitizeTime(j.prepMinutes);
-  const c = sanitizeTime(j.cookMinutes);
+/** Trust `minutes` from the model; light fallback only. */
+export function resolveTotalMinutes(j: GroqRecipeJson): number {
   const m = sanitizeTime(j.minutes);
-  const estimated = estimateTimesFromContent(j);
-
-  if (!Number.isNaN(p) && !Number.isNaN(c)) {
-    const sum = p + c;
-    if (!Number.isNaN(m) && Math.abs(sum - m) <= 5) {
-      return { prep: p, cook: c, total: m };
-    }
-    return { prep: p, cook: c, total: sum };
-  }
-
-  if (!Number.isNaN(m)) {
-    if (!Number.isNaN(p)) {
-      const cook = Math.max(0, m - p);
-      return { prep: p, cook, total: m };
-    }
-    if (!Number.isNaN(c)) {
-      const prep = Math.max(0, m - c);
-      return { prep, cook: c, total: m };
-    }
-    const prepShare = Math.min(0.55, Math.max(0.2, estimated.prep / estimated.total));
-    const prep = Math.max(1, Math.round(m * prepShare));
-    const cook = Math.max(0, m - prep);
-    return { prep, cook, total: m };
-  }
-
-  if (!Number.isNaN(p)) {
-    return { prep: p, cook: estimated.cook, total: p + estimated.cook };
-  }
-  if (!Number.isNaN(c)) {
-    return { prep: estimated.prep, cook: c, total: estimated.prep + c };
-  }
-
-  return estimated;
+  if (!Number.isNaN(m)) return m;
+  return estimateTotalMinutesFromContent(j);
 }
 
 /** Skip pseudo-rows the model sometimes emits as ingredients. */
@@ -266,7 +232,7 @@ function sanitizeAlternativesText(raw: string): string {
   return deduped.slice(0, 3).join(", ");
 }
 
-function mapSteps(rows: GroqRecipeJson["steps"]): RecipeMethodStep[] {
+function mapSteps(rows: GroqRecipeJson["steps"], j: GroqRecipeJson): RecipeMethodStep[] {
   if (!Array.isArray(rows) || rows.length === 0) {
     return [
       {
@@ -278,23 +244,26 @@ function mapSteps(rows: GroqRecipeJson["steps"]): RecipeMethodStep[] {
     ];
   }
   return rows.map((r) => {
+    const title = typeof r.title === "string" ? r.title.trim() : "";
+    const body = typeof r.body === "string" ? r.body.trim() : "";
     return {
       order: r.order,
-      title: r.title.trim(),
-      body: r.body.trim(),
+      title: title || r.title,
+      body: body || r.body,
       accent: false,
     };
   });
 }
 
 /**
- * Maps Groq JSON to persisted `RecipeDetail`. Applies Swiss-German orthography via
- * `normalizeGroqRecipeDetail` so localStorage stores model text already normalized.
+ * Maps Groq JSON to persisted `RecipeDetail`.
+ * NOTE: Step-guard + Swiss orthography normalization are applied in the backend
+ * post-fetch pipeline. This mapper is structure-only.
  */
 export function groqJsonToRecipeDetail(recipeId: string, j: GroqRecipeJson): RecipeDetail {
-  const { prep, cook } = resolveRecipeTimes(j);
+  const minutes = resolveTotalMinutes(j);
 
-  const steps = mapSteps(j.steps);
+  const steps = mapSteps(j.steps, j);
   const cleanupNoteRaw = cleanupNoteFromGroq(j.dishwasherTip);
   const cleanupNote = cleanupNoteRaw;
 
@@ -330,15 +299,14 @@ export function groqJsonToRecipeDetail(recipeId: string, j: GroqRecipeJson): Rec
 
   const title = sanitizeRecipeTitle(j.title);
 
-  return normalizeGroqRecipeDetail({
+  return {
     id: recipeId,
     title,
-    prepMinutes: prep,
-    cookMinutes: cook,
+    minutes,
     basePortions,
     scalingModes: [
       { id: "portions", label: "Portionen" },
-      { id: "percent", label: "Prozent" },
+      { id: "percent", label: "%" },
     ],
     defaultScalingId: "portions",
     ingredients,
@@ -353,12 +321,11 @@ export function groqJsonToRecipeDetail(recipeId: string, j: GroqRecipeJson): Rec
     ...(flavorSummaryNote ? { flavorSummaryNote } : {}),
     ...(shoppingAlternativesNote ? { shoppingAlternativesNote } : {}),
     lastUpdatedLabel: "KI",
-  });
+  };
 }
 
-/** List row for storage; title is Swiss-normalized before persist. */
+/** List row for storage. Step-guard + Swiss orthography already applied in backend. */
 export function groqJsonToListRow(recipeId: string, j: GroqRecipeJson): RecipeListRow {
-  const { total } = resolveRecipeTimes(j);
   const title = sanitizeRecipeTitle(j.title);
 
   const hasShopping =
@@ -367,12 +334,12 @@ export function groqJsonToListRow(recipeId: string, j: GroqRecipeJson): RecipeLi
       (x) => typeof x?.component === "string" && x.component.trim().length > 0,
     );
 
-  return normalizeGroqListRow({
+  return {
     id: recipeId,
     title,
     status: hasShopping ? "shopping" : "pantry",
-    minutes: total,
-  });
+    minutes: resolveTotalMinutes(j),
+  };
 }
 
 function sanitizeRecipeTitle(rawTitle: unknown): string {
@@ -435,5 +402,5 @@ export function groqJsonToTag(j: GroqRecipeJson): string {
       out = "—";
     }
   }
-  return normalizeSwissGroqText(out);
+  return out;
 }

@@ -1,5 +1,11 @@
+/**
+ * Swiss-German orthography normalization for Groq model output.
+ * OWNERSHIP: backend post-fetch pipeline only.
+ * FORBIDDEN: client-side or storage-layer import/usage.
+ */
 import type { RecipeDetail, RecipeListRow } from "../../types";
 import { normalizeIngredientQuantityText } from "../../utils/normalizeIngredientQuantity";
+import type { GroqIngredientLine, GroqRecipeJson, GroqStepLine } from "./groqTypes";
 
 /** Swiss-style orthography: no Eszett (U+00DF); normalize to `ss`. */
 export function normalizeSwissGroqText(s: string): string {
@@ -42,6 +48,13 @@ function umlautUpper(base: string): string {
   return "Ü";
 }
 
+/** Fixed UI labels for scaling mode ids (persisted details may still carry older labels). */
+export function canonicalScalingModeLabel(id: string, label: string): string {
+  if (id === "percent") return "%";
+  if (id === "portions") return "Portionen";
+  return normalizeSwissGroqText(label);
+}
+
 /** Single pipeline step: normalize all Groq-sourced display strings on a recipe detail. */
 export function normalizeGroqRecipeDetail(d: RecipeDetail): RecipeDetail {
   return {
@@ -49,7 +62,7 @@ export function normalizeGroqRecipeDetail(d: RecipeDetail): RecipeDetail {
     title: normalizeSwissGroqText(d.title),
     scalingModes: d.scalingModes.map((m) => ({
       ...m,
-      label: normalizeSwissGroqText(m.label),
+      label: canonicalScalingModeLabel(m.id, m.label),
     })),
     ingredients: d.ingredients.map((row) => ({
       component: normalizeSwissGroqText(row.component),
@@ -91,4 +104,59 @@ export function normalizeGroqRecipeDetail(d: RecipeDetail): RecipeDetail {
 
 export function normalizeGroqListRow(r: RecipeListRow): RecipeListRow {
   return { ...r, title: normalizeSwissGroqText(r.title) };
+}
+
+/**
+ * Backend-only sanitization of Groq model output.
+ * OWNERSHIP: backend post-fetch pipeline only.
+ * FORBIDDEN: client/storage usage; mappers must not re-normalize.
+ */
+export function normalizeGroqRecipeJsonForBackendSanitization(
+  j: GroqRecipeJson,
+): GroqRecipeJson {
+  const normMaybe = (s: unknown): string | undefined =>
+    typeof s === "string" ? normalizeSwissGroqText(s) : undefined;
+
+  const normQty = (s: unknown): string => {
+    const raw = typeof s === "string" ? s : "";
+    return normalizeIngredientQuantityText(normalizeSwissGroqText(raw));
+  };
+
+  const normIngredient = (r: GroqIngredientLine): GroqIngredientLine => ({
+    ...r,
+    component:
+      typeof r.component === "string" ? normalizeSwissGroqText(r.component) : r.component,
+    quantity: typeof r.quantity === "string" ? normQty(r.quantity) : r.quantity,
+    alternatives: normMaybe(r.alternatives),
+    purchaseHint: normMaybe(r.purchaseHint),
+    flavorNote: normMaybe(r.flavorNote),
+  });
+
+  const normStep = (s: GroqStepLine): GroqStepLine => ({
+    ...s,
+    title: normalizeSwissGroqText(s.title),
+    body: normalizeSwissGroqText(s.body),
+  });
+
+  return {
+    ...j,
+    title: normalizeSwissGroqText(j.title),
+    tag: typeof j.tag === "string" ? normalizeSwissGroqText(j.tag) : j.tag,
+    requiredBaseStaples: j.requiredBaseStaples.map((s) => normalizeSwissGroqText(s)),
+    equipmentNote: normMaybe(j.equipmentNote) ?? j.equipmentNote,
+    nutritionNote: normMaybe(j.nutritionNote) ?? j.nutritionNote,
+    optionalUpgradeNote: normMaybe(j.optionalUpgradeNote) ?? j.optionalUpgradeNote,
+    shoppingHints: normMaybe(j.shoppingHints) ?? j.shoppingHints,
+    dishwasherTip: normMaybe(j.dishwasherTip) ?? j.dishwasherTip,
+    ingredientsOnHand:
+      j.ingredientsOnHand === undefined
+        ? undefined
+        : j.ingredientsOnHand.map(normIngredient),
+    ingredientsShopping:
+      j.ingredientsShopping === undefined
+        ? undefined
+        : j.ingredientsShopping.map(normIngredient),
+    spices: j.spices.map(normIngredient),
+    steps: (j.steps ?? []).map(normStep),
+  };
 }

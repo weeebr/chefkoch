@@ -135,7 +135,7 @@ function ManageRow({
           Kategorie (Icon)
         </label>
         <CategoryIconSelect
-          id={categoryFieldId}
+          buttonId={categoryFieldId}
           value={row.category}
           onChange={(c) => onUpdate(row.id, { category: c })}
           buttonClassName={categorySelectButtonForm}
@@ -284,7 +284,7 @@ export function SettingsScreen() {
                 Kategorie (Icon)
               </label>
               <CategoryIconSelect
-                id="icon-category"
+                buttonId="icon-category"
                 value={category}
                 onChange={setCategory}
                 buttonClassName={categorySelectButtonForm}

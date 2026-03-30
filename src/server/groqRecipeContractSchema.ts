@@ -40,8 +40,6 @@ export const groqRecipeContractProviderSchema: z.ZodType<GroqRecipeJson> = z
     tag: z.string().min(1),
 
     servings: z.number().int().min(1).max(99),
-    prepMinutes: z.number().int().min(0),
-    cookMinutes: z.number().int().min(0),
     minutes: z.number().int().min(0),
 
     ingredientsOnHand: z.array(groqIngredientLineSchema).min(1),
@@ -58,21 +56,11 @@ export const groqRecipeContractProviderSchema: z.ZodType<GroqRecipeJson> = z
     dishwasherTip: z.string(),
 
     // steps[] is the canonical structure in one-shot JSON mode.
-    steps: z.array(groqStepLineSchema).min(1),
+    steps: z.array(groqStepLineSchema).min(4).max(7),
   })
   .strict();
 
-export const groqRecipeContractSchema: z.ZodType<GroqRecipeJson> =
-  groqRecipeContractProviderSchema.superRefine((v, ctx) => {
-    // High-value invariants: catch obvious clown-car payloads without a validator cathedral.
-    if (!v.steps || v.steps.length < 1) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "steps.length must be >= 1",
-        path: ["steps"],
-      });
-    }
-  });
+export const groqRecipeContractSchema: z.ZodType<GroqRecipeJson> = groqRecipeContractProviderSchema;
 
 export type GroqRecipeContract = z.infer<typeof groqRecipeContractSchema>;
 
@@ -93,8 +81,6 @@ const groqRecipeJsonSchemaForResponseFormat: Record<string, unknown> = {
     "title",
     "tag",
     "servings",
-    "prepMinutes",
-    "cookMinutes",
     "minutes",
     "ingredientsOnHand",
     "ingredientsShopping",
@@ -111,8 +97,6 @@ const groqRecipeJsonSchemaForResponseFormat: Record<string, unknown> = {
     title: { type: "string", minLength: 1 },
     tag: { type: "string", minLength: 1 },
     servings: { type: "integer", minimum: 1, maximum: 99 },
-    prepMinutes: { type: "integer", minimum: 0 },
-    cookMinutes: { type: "integer", minimum: 0 },
     minutes: { type: "integer", minimum: 0 },
     ingredientsOnHand: {
       type: "array",
@@ -189,7 +173,8 @@ const groqRecipeJsonSchemaForResponseFormat: Record<string, unknown> = {
     dishwasherTip: { type: "string" },
     steps: {
       type: "array",
-      minItems: 1,
+      minItems: 4,
+      maxItems: 7,
       items: {
         type: "object",
         additionalProperties: false,

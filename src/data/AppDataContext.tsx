@@ -1,3 +1,9 @@
+/**
+ * App data context: manages AppState and exposes actions to the UI.
+ * OWNERSHIP: state management and UI action dispatch only.
+ * FORBIDDEN: AI output mapping, sanitization, or Swiss normalization.
+ * Recipe data from the backend is already typed and sanitized; persist directly.
+ */
 import {
   createContext,
   useCallback,
@@ -21,6 +27,13 @@ import {
   resetPersistedState,
   savePersistedState,
 } from "./storage";
+
+function uuid(): string {
+  const c: any = (globalThis as any).crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  // Fallback for runtimes without `crypto.randomUUID` (dev/server edge cases).
+  return `id_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
 
 type AppDataContextValue = {
   state: AppState;
@@ -71,7 +84,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           pantry: [
             ...prev.pantry,
             {
-              id: crypto.randomUUID(),
+              id: uuid(),
               name: trimmed,
               category: input.category,
               status: input.status,
@@ -244,21 +257,22 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           import("../features/groq/groqTypes").RecipeGenerationInput["previousRecipeHints"]
         > = [];
 
+        const selectedPantrySnapshot = selectedPantry.map((p) => ({
+          id: p.id,
+          name: p.name,
+        }));
+
         setState((prev) => {
           const next = applyGeneratedRecipesBatch(prev, {
             recipes: [],
-            selectedPantry: selectedPantry.map((p) => ({
-              id: p.id,
-              name: p.name,
-            })),
-            willingToShop,
+            selectedPantry: selectedPantrySnapshot,
           });
           savePersistedState(next);
           return next;
         });
 
         for (let i = 0; i < totalRecipesToGenerate; i++) {
-          const recipe = await fetchRecipeFromGroqOnce(
+          const result = await fetchRecipeFromGroqOnce(
             apiKey,
             {
               pantryLines,
@@ -272,12 +286,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
           setState((prev) => {
             const nextState = appendGeneratedRecipesBatch(prev, {
-              recipes: [recipe],
-              selectedPantry: selectedPantry.map((p) => ({
-                id: p.id,
-                name: p.name,
-              })),
-              willingToShop,
+              recipes: [
+                {
+                  id: result.id,
+                  detail: result.detail,
+                  listRow: result.listRow,
+                  tag: result.tag,
+                },
+              ],
+              selectedPantry: selectedPantrySnapshot,
             });
             savePersistedState(nextState);
             return nextState;
@@ -285,15 +302,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
           setPendingGeneratedRecipeSlots(Math.max(0, totalRecipesToGenerate - (i + 1)));
 
-          previousRecipeTitles.push(recipe.title);
-          const firstFlavorNote = recipe.ingredientsOnHand
-            ?.map((x) => x.flavorNote?.trim())
-            .find((x) => !!x);
+          previousRecipeTitles.push(result.detail.title);
           previousRecipeHints.push({
-            title: recipe.title,
-            tag: recipe.tag?.trim() || undefined,
-            equipmentNote: recipe.equipmentNote?.trim() || undefined,
-            flavorNote: firstFlavorNote || recipe.nutritionNote?.trim() || undefined,
+            title: result.detail.title,
+            tag: result.tag || undefined,
+            equipmentNote: result.detail.equipmentNote || undefined,
+            flavorNote:
+              result.detail.flavorSummaryNote ||
+              result.detail.nutritionNote ||
+              undefined,
           });
         }
         return null;

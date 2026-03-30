@@ -18,10 +18,13 @@ export function useRecipeScaling(detail: RecipeDetail, recipeId: string) {
   }, [recipeId]);
 
   const minFactor = 1 / basePortions;
-  const maxFactor = Math.min(99 / basePortions, 10);
+  const maxFactor = 99 / basePortions;
 
   const clampFactor = (f: number) =>
     Math.min(maxFactor, Math.max(minFactor, f));
+
+  const isScaleAtFloor = scaleFactor <= minFactor + 1e-9;
+  const isScaleAtCeiling = scaleFactor >= maxFactor - 1e-9;
 
   const displayPortions = Math.max(
     1,
@@ -59,6 +62,12 @@ export function useRecipeScaling(detail: RecipeDetail, recipeId: string) {
     }));
   }, [detail.spices, resolvedMode, scaleFactor]);
 
+  /** Main + spice rows in display order (matches `matchRecipes` concatenation). */
+  const displayMergedIngredientRows = useMemo(
+    () => [...displayIngredients, ...displaySpices],
+    [displayIngredients, displaySpices],
+  );
+
   const setPortionsFromInput = (n: number) => {
     if (!Number.isFinite(n)) return;
     const p = Math.max(1, Math.min(99, Math.round(n)));
@@ -67,7 +76,7 @@ export function useRecipeScaling(detail: RecipeDetail, recipeId: string) {
 
   const setPercentFromInput = (n: number) => {
     if (!Number.isFinite(n)) return;
-    const pc = Math.max(10, Math.min(500, Math.round(n * 10) / 10));
+    const pc = Math.max(1, Math.round(n * 10) / 10);
     setScaleFactor(clampFactor(pc / 100));
   };
 
@@ -79,8 +88,9 @@ export function useRecipeScaling(detail: RecipeDetail, recipeId: string) {
     basePortions,
     displayPortions,
     displayPercent,
-    displayIngredients,
-    displaySpices,
+    displayMergedIngredientRows,
+    isScaleAtFloor,
+    isScaleAtCeiling,
     setPortionsFromInput,
     setPercentFromInput,
   };

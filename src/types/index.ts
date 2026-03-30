@@ -74,11 +74,11 @@ export interface RecipeMethodStep {
 export interface RecipeDetail {
   id: string;
   title: string;
-  prepMinutes: number;
-  cookMinutes: number;
+  /** Total time from start to serve (prep + cooking), whole minutes. */
+  minutes: number;
   /**
    * Written recipe quantities refer to this many portions (scaling baseline).
-   * UI uses this with Portionen vs. Prozent modes.
+   * UI uses this with Portionen vs. % modes.
    */
   basePortions: number;
   scalingModes: { id: string; label: string }[];
