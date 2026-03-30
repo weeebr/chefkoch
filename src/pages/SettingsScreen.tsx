@@ -235,6 +235,12 @@ export function SettingsScreen() {
   const [category, setCategory] = useState<IconCategory>("Kühlschrank");
   const [status, setStatus] = useState<PantryIngredient["status"]>("raw");
   const [editingPantryId, setEditingPantryId] = useState<string | null>(null);
+  const [groqApiKeyDraft, setGroqApiKeyDraft] = useState(state.groqApiKey);
+  const hasOwnGroqApiKey = groqApiKeyDraft.trim().length > 0;
+
+  useEffect(() => {
+    setGroqApiKeyDraft(state.groqApiKey);
+  }, [state.groqApiKey]);
 
   function handleAdd() {
     const trimmed = name.trim();
@@ -462,16 +468,33 @@ export function SettingsScreen() {
               type="password"
               autoComplete="off"
               placeholder="gsk_..."
-              value={state.groqApiKey}
-              onChange={(e) => setGroqApiKey(e.target.value)}
+              value={groqApiKeyDraft}
+              onChange={(e) => {
+                const next = e.target.value;
+                setGroqApiKeyDraft(next);
+                setGroqApiKey(next);
+              }}
             />
             <p className="text-xs text-on-surface-variant/80">
-              Du nutzt zur Zeit einen Key, der mit anderen Nutzern geteilt wird.
-              Falls diese zur gleichen Zeit wie du Rezepte generieren, kann die
-              Generierung fehlschlagen.
-              <br />
-              Um die App ganz ungestört zu nutzen, hinterlege einen eigenen
-              Groq-API-Key. Den Key bekommst du hier:{" "}
+              {hasOwnGroqApiKey ? (
+                <>
+                  Danke fürs Hinzufügen vom Key! ❤️ Geile Siäch!
+                  <br />
+                  <br />
+                  Nur als Referenz, deinen Groq-API-Key lässt sich hier
+                  verwalten:{" "}
+                </>
+              ) : (
+                <>
+                  Du nutzt zur Zeit einen Key, der mit anderen Nutzern geteilt
+                  wird. Falls diese zur gleichen Zeit wie du Rezepte generieren,
+                  kann die Generierung fehlschlagen.
+                  <br />
+                  <br />
+                  Um die App ganz ungestört zu nutzen, hinterlege einen eigenen
+                  Groq-API-Key. Den Key bekommst du hier:{" "}
+                </>
+              )}
               <a
                 href="https://console.groq.com/keys"
                 target="_blank"
