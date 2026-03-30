@@ -25,8 +25,7 @@ const ingredientFieldLabelClass =
 const ingredientRadioClass =
   "h-4 w-4 border-secondary/20 accent-secondary focus:ring-secondary/20";
 
-const ingredientSubmitButtonClass =
-  `flex w-full items-center justify-center gap-2 rounded-full px-8 py-3.5 font-bold text-on-secondary-fixed transition-all active:scale-95 ${ingredientSelectedChipSurfaceClass}`;
+const ingredientSubmitButtonClass = `flex w-full items-center justify-center gap-2 rounded-full px-8 py-3.5 font-bold text-on-secondary-fixed transition-all active:scale-95 ${ingredientSelectedChipSurfaceClass}`;
 
 function ManageRow({
   row,
@@ -154,7 +153,9 @@ function ManageRow({
               type="radio"
               value="raw"
             />
-            <span className="text-sm font-medium text-on-surface">Prep nötig</span>
+            <span className="text-sm font-medium text-on-surface">
+              Prep nötig
+            </span>
           </label>
           <label className="flex cursor-pointer items-center gap-2">
             <input
@@ -211,12 +212,10 @@ const fieldClass =
 const ingredientControlSurfaceClass =
   "rounded-xl border border-secondary/20 bg-surface-container-lowest px-4 py-3 text-sm text-on-surface";
 
-const ingredientFieldClass =
-  `${ingredientControlSurfaceClass} w-full placeholder:text-on-surface-variant/50 transition-colors focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/25`;
+const ingredientFieldClass = `${ingredientControlSurfaceClass} w-full placeholder:text-on-surface-variant/50 transition-colors focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/25`;
 
 /** Saved row (view): same surface as inputs; actions are absolutely positioned so row height matches the text field. */
-const savedIngredientViewRowClass =
-  `relative flex w-full min-w-0 items-center ${ingredientControlSurfaceClass} transition-colors`;
+const savedIngredientViewRowClass = `relative flex w-full min-w-0 items-center ${ingredientControlSurfaceClass} transition-colors`;
 
 export function SettingsScreen() {
   const {
@@ -229,8 +228,7 @@ export function SettingsScreen() {
     resetAppData,
   } = useAppData();
   const pantryNewestFirst = useMemo(
-    () =>
-      [...state.pantry].sort((a, b) => b.addedAt - a.addedAt),
+    () => [...state.pantry].sort((a, b) => b.addedAt - a.addedAt),
     [state.pantry],
   );
   const [name, setName] = useState("");
@@ -262,7 +260,9 @@ export function SettingsScreen() {
         </div>
 
         <div>
-          <h3 className={`mb-4 ${ingredientSectionHeadingClass}`}>Neue Zutat</h3>
+          <h3 className={`mb-4 ${ingredientSectionHeadingClass}`}>
+            Neue Zutat
+          </h3>
           <form
             className={`space-y-5 p-5 ${ingredientWarmPanelClass}`}
             onSubmit={(e) => {
@@ -390,9 +390,11 @@ export function SettingsScreen() {
           </h3>
           <div className="space-y-3 rounded-2xl border border-outline-variant/10 bg-surface-container-low p-5">
             <p className="text-sm leading-relaxed text-on-surface-variant">
-              Löscht alle in diesem Browser gespeicherten App-Daten: Vorrat, Auswahl,
-              Rezepte, Lesezeichen und Standort. Der{" "}
-              <span className="font-semibold text-on-surface">Groq-API-Schlüssel</span>{" "}
+              Löscht alle in diesem Browser gespeicherten App-Daten: Vorrat,
+              Auswahl, Rezepte, Lesezeichen und Standort. Der{" "}
+              <span className="font-semibold text-on-surface">
+                Groq-API-Schlüssel
+              </span>{" "}
               bleibt erhalten.
             </p>
             <button
@@ -437,8 +439,8 @@ export function SettingsScreen() {
             />
             <p className="text-xs text-on-surface-variant/80">
               Dient regionalen Hinweisen — z. B. wenn du auf Zutaten{" "}
-              <span className="font-semibold">Auch einkaufen</span> nutzt und passende
-              Zusatz-Zutaten vorgeschlagen werden.
+              <span className="font-semibold">Auch einkaufen</span> nutzt und
+              passende Zusatz-Zutaten vorgeschlagen werden.
             </p>
           </div>
         </div>
@@ -464,8 +466,8 @@ export function SettingsScreen() {
               onChange={(e) => setGroqApiKey(e.target.value)}
             />
             <p className="text-sm leading-relaxed text-on-surface-variant/90">
-              Um die App zu nutzen, hinterlege einen Groq-API-Key. Den Key
-              bekommst du hier:{" "}
+              Um die App ungestört zu nutzen, hinterlege einen eigenen
+              Groq-API-Key. Den Key bekommst du hier:{" "}
               <a
                 href="https://console.groq.com/keys"
                 target="_blank"

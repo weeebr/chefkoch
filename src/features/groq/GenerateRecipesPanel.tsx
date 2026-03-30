@@ -3,6 +3,11 @@ import { MaterialIcon } from "../../components/MaterialIcon";
 import { useAppData } from "../../data/AppDataContext";
 import { estimateWaitSecondsForNextClick } from "./groqTpmMinuteStore";
 
+const optionLabelBaseClass = "mx-auto flex w-fit items-start gap-3 text-left";
+const optionCheckboxBaseClass =
+  "mt-0.5 h-4 w-4 shrink-0 rounded border-outline-variant focus:ring-secondary/20 accent-secondary";
+const optionTextBaseClass = "text-sm leading-snug";
+
 export function GenerateRecipesPanel() {
   const { state, generateRecipesFromPantrySelection } = useAppData();
   const [genError, setGenError] = useState<string | null>(null);
@@ -102,7 +107,7 @@ export function GenerateRecipesPanel() {
 
         <label
           className={[
-            "mx-auto flex w-fit items-start gap-3 text-left",
+            optionLabelBaseClass,
             checkboxDisabled
               ? "cursor-not-allowed opacity-60"
               : "cursor-pointer",
@@ -114,13 +119,13 @@ export function GenerateRecipesPanel() {
             disabled={checkboxDisabled}
             onChange={(e) => setWillingToShop(e.target.checked)}
             className={[
-              "mt-0.5 h-4 w-4 shrink-0 rounded border-outline-variant focus:ring-primary/20 accent-primary",
+              optionCheckboxBaseClass,
               checkboxDisabled ? "cursor-not-allowed opacity-60" : "",
             ].join(" ")}
           />
           <span
             className={[
-              "text-sm leading-snug",
+              optionTextBaseClass,
               checkboxDisabled ? "text-on-surface/50" : "text-on-surface",
             ].join(" ")}
           >
@@ -131,7 +136,7 @@ export function GenerateRecipesPanel() {
 
         <label
           className={[
-            "mx-auto flex w-fit items-start gap-3 text-left",
+            optionLabelBaseClass,
             checkboxDisabled
               ? "cursor-not-allowed opacity-60"
               : "cursor-pointer",
@@ -143,13 +148,13 @@ export function GenerateRecipesPanel() {
             disabled={checkboxDisabled}
             onChange={(e) => setStrictUseAllSelected(e.target.checked)}
             className={[
-              "mt-0.5 h-4 w-4 shrink-0 rounded border-outline-variant focus:ring-primary/20 accent-primary",
+              optionCheckboxBaseClass,
               checkboxDisabled ? "cursor-not-allowed opacity-60" : "",
             ].join(" ")}
           />
           <span
             className={[
-              "text-sm leading-snug",
+              optionTextBaseClass,
               checkboxDisabled ? "text-on-surface/50" : "text-on-surface",
             ].join(" ")}
           >
