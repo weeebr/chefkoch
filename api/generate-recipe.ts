@@ -1,7 +1,12 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { generateRecipeOnceWithGroqJsonSchema } from "../src/server/groqGenerateRecipe";
-import { generateRecipeRequestSchema } from "../src/server/groqGenerateRecipeRequest";
+/* eslint-disable @typescript-eslint/no-var-requires */
+const { readFileSync } = require("node:fs");
+const { resolve } = require("node:path");
+const {
+  generateRecipeOnceWithGroqJsonSchema,
+} = require("../src/server/groqGenerateRecipe");
+const {
+  generateRecipeRequestSchema,
+} = require("../src/server/groqGenerateRecipeRequest");
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -9,14 +14,16 @@ const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Headers": "Authorization, Content-Type, x-groq-api-key",
 };
 
-function jsonResponse(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "application/json; charset=utf-8",
-    },
+function writeJson(
+  res: { writeHead: (status: number, headers: Record<string, string>) => void; end: (body?: string) => void },
+  status: number,
+  body: unknown,
+): void {
+  res.writeHead(status, {
+    ...corsHeaders,
+    "Content-Type": "application/json; charset=utf-8",
   });
+  res.end(JSON.stringify(body));
 }
 
 let cachedPromptSource: string | null = null;
@@ -42,17 +49,35 @@ function getPromptSource(): string {
   throw new Error("Prompt source file not found in runtime.");
 }
 
-export default async function handler(request: Request): Promise<Response> {
-  if (request.method === "OPTIONS")
-    return new Response(null, { status: 204, headers: corsHeaders });
-  if (request.method !== "POST")
-    return jsonResponse(405, { error: { message: "Method not allowed" } });
+export default async function handler(
+  req: any,
+  res: any,
+): Promise<void> {
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, corsHeaders);
+    res.end();
+    return;
+  }
+  if (req.method !== "POST") {
+    writeJson(res, 405, { error: { message: "Method not allowed" } });
+    return;
+  }
+
+  const bodyText = await new Promise<string>((resolveBody, reject) => {
+    let acc = "";
+    req.on("data", (chunk: any) => {
+      acc += chunk.toString("utf8");
+    });
+    req.on("end", () => resolveBody(acc));
+    req.on("error", reject);
+  });
 
   let payload: unknown;
   try {
-    payload = await request.json();
+    payload = bodyText.trim() ? JSON.parse(bodyText) : {};
   } catch {
-    return jsonResponse(400, { error: { message: "Invalid JSON body." } });
+    writeJson(res, 400, { error: { message: "Invalid JSON body." } });
+    return;
   }
 
   const requestResult = generateRecipeRequestSchema.safeParse(payload);
@@ -60,18 +85,26 @@ export default async function handler(request: Request): Promise<Response> {
     const first = requestResult.error.issues[0];
     const where = first?.path?.join(".") || "body";
     const why = first?.message || "Invalid request payload.";
-    return jsonResponse(400, { error: { message: `${where}: ${why}` } });
+    writeJson(res, 400, { error: { message: `${where}: ${why}` } });
+    return;
   }
   const requestData = requestResult.data;
 
-  const apiKey = request.headers.get("x-groq-api-key") ?? "";
+  const apiKeyHeader = req.headers["x-groq-api-key"];
+  const apiKey =
+    typeof apiKeyHeader === "string"
+      ? apiKeyHeader
+      : Array.isArray(apiKeyHeader)
+        ? apiKeyHeader[0] ?? ""
+        : "";
   if (!apiKey.trim()) {
-    return jsonResponse(400, {
+    writeJson(res, 400, {
       error: {
         message:
           "Missing x-groq-api-key header. Bitte Groq-Schlüssel in Settings setzen.",
       },
     });
+    return;
   }
 
   try {
@@ -90,11 +123,10 @@ export default async function handler(request: Request): Promise<Response> {
       },
       promptSource,
     );
-
-    return jsonResponse(200, result);
+    writeJson(res, 200, result);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Groq generation failed.";
     const status = /Prompt source file not found/i.test(msg) ? 500 : 400;
-    return jsonResponse(status, { error: { message: msg } });
+    writeJson(res, status, { error: { message: msg } });
   }
 }
