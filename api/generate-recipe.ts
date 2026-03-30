@@ -49,7 +49,7 @@ function getPromptSource(): string {
   throw new Error("Prompt source file not found in runtime.");
 }
 
-export default async function handler(
+async function handler(
   req: any,
   res: any,
 ): Promise<void> {
@@ -130,3 +130,5 @@ export default async function handler(
     writeJson(res, status, { error: { message: msg } });
   }
 }
+
+module.exports = handler;
