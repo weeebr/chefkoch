@@ -4,7 +4,7 @@ const pantryLineSchema = z
   .object({
     name: z.string().min(1),
     category: z.string().min(1),
-    status: z.union([z.literal("raw"), z.literal("precooked")]),
+    status: z.union([z.literal("raw"), z.literal("precooked"), z.literal("spice")]),
   })
   .strict();
 

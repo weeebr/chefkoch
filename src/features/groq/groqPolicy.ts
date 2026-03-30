@@ -80,9 +80,10 @@ export function normalizeGroqRecipeForPolicy(
   j: GroqRecipeJson,
   willingToShop: boolean,
   strictUseAllSelected: boolean,
-  allowedPantryNames: string[],
+  allowedMainPantryNames: string[],
+  allowedSpicePantryNames: string[],
 ): GroqRecipeJson {
-  const requiredNames = allowedPantryNames;
+  const requiredNames = allowedMainPantryNames;
 
   const jStripped: GroqRecipeJson = {
     ...j,
@@ -116,7 +117,10 @@ export function normalizeGroqRecipeForPolicy(
     };
   }
 
-  const filteredSpices = filterIngredientsBySelection(jStripped.spices, requiredNames);
+  const filteredSpices = filterIngredientsBySelection(
+    jStripped.spices,
+    allowedSpicePantryNames,
+  );
   const { shoppingHints: _sh, optionalUpgradeNote: _ou, ...rest } = jStripped;
 
   return {

@@ -205,12 +205,18 @@ export async function generateRecipeOnceWithGroqJsonSchema(
   }
 
   // --- Single sanitization + mapping pass (immediately after validation) ---
-  const allowedPantryNames = req.pantryLines.map((p) => p.name);
+  const allowedMainPantryNames = req.pantryLines
+    .filter((p) => p.status !== "spice")
+    .map((p) => p.name);
+  const allowedSpicePantryNames = req.pantryLines
+    .filter((p) => p.status === "spice")
+    .map((p) => p.name);
   const policyEnforced = normalizeGroqRecipeForPolicy(
     result.data,
     req.willingToShop,
     req.strictUseAllSelected,
-    allowedPantryNames,
+    allowedMainPantryNames,
+    allowedSpicePantryNames,
   );
 
   // --- Single sanitization pass (step guard + Swiss orthography) ---
@@ -242,7 +248,7 @@ export async function generateRecipeOnceWithGroqJsonSchema(
 
   const id = randomUUID();
   const detail = groqJsonToRecipeDetail(id, sanitizedForMapping);
-  const listRow = groqJsonToListRow(id, sanitizedForMapping);
+  const listRow = groqJsonToListRow(id, sanitizedForMapping, allowedSpicePantryNames);
   const tag = groqJsonToTag(sanitizedForMapping);
   const totalTokens = extractTotalTokens(raw);
 

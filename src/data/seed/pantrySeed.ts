@@ -171,6 +171,44 @@ const freshSeed: PantryIngredient[] = [
   },
 ];
 
+const spiceSeed: PantryIngredient[] = [
+  {
+    id: "sp_paprika",
+    name: "Paprika",
+    category: c("Vorratsschrank"),
+    status: "spice",
+    addedAt: 24,
+  },
+  {
+    id: "sp_oregano",
+    name: "Oregano",
+    category: c("Vorratsschrank"),
+    status: "spice",
+    addedAt: 25,
+  },
+  {
+    id: "sp_curry",
+    name: "Curry",
+    category: c("Vorratsschrank"),
+    status: "spice",
+    addedAt: 26,
+  },
+  {
+    id: "sp_kreuzkuemmel",
+    name: "Kreuzkümmel",
+    category: c("Vorratsschrank"),
+    status: "spice",
+    addedAt: 27,
+  },
+  {
+    id: "sp_rosmarin",
+    name: "Rosmarin",
+    category: c("Vorratsschrank"),
+    status: "spice",
+    addedAt: 28,
+  },
+];
+
 function mergePantryByName(items: PantryIngredient[]): PantryIngredient[] {
   const seen = new Set<string>();
   const out: PantryIngredient[] = [];
@@ -185,6 +223,7 @@ function mergePantryByName(items: PantryIngredient[]): PantryIngredient[] {
 const mergedPantrySeed = mergePantryByName([
   ...preCookedSeed,
   ...freshSeed,
+  ...spiceSeed,
 ]);
 
 export const pantryIdSet = new Set(mergedPantrySeed.map((p) => p.id));

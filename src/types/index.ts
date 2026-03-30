@@ -1,6 +1,6 @@
 export type ActiveScreen = "ingredients" | "recipes" | "settings";
 
-export type IngredientStatus = "precooked" | "raw";
+export type IngredientStatus = "precooked" | "raw" | "spice";
 
 /** Icon / category groups for ingredients (German UI). */
 export const ICON_CATEGORIES = [

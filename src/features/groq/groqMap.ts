@@ -325,7 +325,11 @@ export function groqJsonToRecipeDetail(recipeId: string, j: GroqRecipeJson): Rec
 }
 
 /** List row for storage. Step-guard + Swiss orthography already applied in backend. */
-export function groqJsonToListRow(recipeId: string, j: GroqRecipeJson): RecipeListRow {
+export function groqJsonToListRow(
+  recipeId: string,
+  j: GroqRecipeJson,
+  selectedSpiceNames: string[] = [],
+): RecipeListRow {
   const title = sanitizeRecipeTitle(j.title);
 
   const hasShopping =
@@ -334,10 +338,24 @@ export function groqJsonToListRow(recipeId: string, j: GroqRecipeJson): RecipeLi
       (x) => typeof x?.component === "string" && x.component.trim().length > 0,
     );
 
+  const selectedSpiceKeys = new Set<string>();
+  for (const name of selectedSpiceNames) {
+    const key = normalizeIngredientLabel(name);
+    if (key) selectedSpiceKeys.add(key);
+  }
+  const hasAdditionalSpice =
+    (j.spices ?? []).some((row) => {
+      const component = typeof row?.component === "string" ? row.component : "";
+      const key = normalizedIngredientKey(component);
+      if (key.length === 0) return false;
+      if (selectedSpiceKeys.size === 0) return true;
+      return !selectedSpiceKeys.has(key);
+    });
+
   return {
     id: recipeId,
     title,
-    status: hasShopping ? "shopping" : "pantry",
+    status: hasShopping || hasAdditionalSpice ? "shopping" : "pantry",
     minutes: resolveTotalMinutes(j),
   };
 }

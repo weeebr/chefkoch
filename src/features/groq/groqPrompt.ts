@@ -66,6 +66,10 @@ export function buildUserPrompt(
   ];
 
   for (const p of input.pantryLines) {
+    if (p.status === "spice") {
+      lines.push(line("SPICE_INGREDIENT", `${p.name}|spice|${p.category}`));
+      continue;
+    }
     const prep = p.status === "precooked" ? "precooked" : "raw";
     lines.push(line("INGREDIENT", `${p.name}|${prep}|${p.category}`));
   }

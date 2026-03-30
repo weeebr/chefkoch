@@ -259,10 +259,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           import("../features/groq/groqTypes").RecipeGenerationInput["previousRecipeHints"]
         > = [];
 
-        const selectedPantrySnapshot = selectedPantry.map((p) => ({
+        const selectedPantrySnapshot = selectedPantry
+          .filter((p) => p.status !== "spice")
+          .map((p) => ({
           id: p.id,
           name: p.name,
-        }));
+          }));
 
         setState((prev) => {
           const next = applyGeneratedRecipesBatch(prev, {

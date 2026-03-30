@@ -2,7 +2,7 @@
 export type RecipeGenerationPantryLine = {
   name: string;
   category: string;
-  status: "precooked" | "raw";
+  status: "precooked" | "raw" | "spice";
 };
 
 export type RecipeGenerationInput = {

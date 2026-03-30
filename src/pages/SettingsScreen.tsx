@@ -169,6 +169,17 @@ function ManageRow({
               Ready / Vorgekocht
             </span>
           </label>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              checked={row.status === "spice"}
+              onChange={() => onUpdate(row.id, { status: "spice" })}
+              className={ingredientRadioClass}
+              name={statusGroupName}
+              type="radio"
+              value="spice"
+            />
+            <span className="text-sm font-medium text-on-surface">Gewürze</span>
+          </label>
         </div>
       </div>
       <div className="flex items-stretch gap-2">
@@ -317,6 +328,19 @@ export function SettingsScreen() {
                   />
                   <span className="text-sm font-medium text-on-surface">
                     Ready / Vorgekocht
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    checked={status === "spice"}
+                    onChange={() => setStatus("spice")}
+                    className={ingredientRadioClass}
+                    name="status"
+                    type="radio"
+                    value="spice"
+                  />
+                  <span className="text-sm font-medium text-on-surface">
+                    Gewürze
                   </span>
                 </label>
               </div>

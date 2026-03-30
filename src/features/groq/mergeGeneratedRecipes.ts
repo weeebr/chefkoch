@@ -17,6 +17,7 @@ export type TypedRecipePayload = {
 
 export type GeneratedRecipesPayload = {
   recipes: TypedRecipePayload[];
+  /** Selected non-spice pantry rows only (strict coverage universe). */
   selectedPantry: Array<{ id: string; name: string }>;
 };
 

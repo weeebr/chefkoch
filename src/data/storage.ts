@@ -93,7 +93,9 @@ function isValidState(raw: unknown): raw is AppState {
     if (typeof p.id !== "string" || p.id.length === 0) return false;
     if (typeof p.name !== "string" || p.name.length === 0) return false;
     if (!(ICON_CATEGORIES as readonly string[]).includes(String(p.category))) return false;
-    if (p.status !== "raw" && p.status !== "precooked") return false;
+    if (p.status !== "raw" && p.status !== "precooked" && p.status !== "spice") {
+      return false;
+    }
     if (typeof p.addedAt !== "number" || !Number.isFinite(p.addedAt)) return false;
     if (p.chipLabel !== undefined && typeof p.chipLabel !== "string") return false;
   }

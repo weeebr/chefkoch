@@ -84,7 +84,12 @@ export function IngredientsScreen({
     .filter((p) => p.status === "raw")
     .sort(byBucketThenNewestFirst)
     .map(toChip);
+  const spiceChips: IngredientChipItem[] = state.pantry
+    .filter((p) => p.status === "spice")
+    .sort(byBucketThenNewestFirst)
+    .map(toChip);
   const notPreCookedItemCount = notPreCookedChips.length;
+  const spiceItemCount = spiceChips.length;
 
   const newestGeneratedIds = new Set(
     state.zutatenScreenRecipeOrder.slice(0, GROQ_RECIPES_PER_BATCH),
@@ -148,6 +153,25 @@ export function IngredientsScreen({
         </div>
         <div className="flex flex-wrap gap-1.5">
           {notPreCookedChips.map((item) => (
+            <ChipButton
+              key={item.id}
+              item={item}
+              selected={selected.has(item.id)}
+              onToggle={() => togglePantrySelection(item.id)}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className={ingredientSectionHeadingClass}>Gewürze</h3>
+          <span className="text-xs font-semibold tabular-nums text-on-secondary-fixed-variant">
+            {spiceItemCount} Einträge
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {spiceChips.map((item) => (
             <ChipButton
               key={item.id}
               item={item}
