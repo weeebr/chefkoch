@@ -465,8 +465,12 @@ export function SettingsScreen() {
               value={state.groqApiKey}
               onChange={(e) => setGroqApiKey(e.target.value)}
             />
-            <p className="text-sm leading-relaxed text-on-surface-variant/90">
-              Um die App ungestört zu nutzen, hinterlege einen eigenen
+            <p className="text-xs text-on-surface-variant/80">
+              Du nutzt zur Zeit einen Key, der mit anderen Nutzern geteilt wird.
+              Falls diese zur gleichen Zeit wie du Rezepte generieren, kann die
+              Generierung fehlschlagen.
+              <br />
+              Um die App ganz ungestört zu nutzen, hinterlege einen eigenen
               Groq-API-Key. Den Key bekommst du hier:{" "}
               <a
                 href="https://console.groq.com/keys"
