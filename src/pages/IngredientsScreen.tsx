@@ -13,6 +13,7 @@ import {
   ingredientSectionHeadingClass,
 } from "../components/ingredients/ingredientChipStyles";
 import { RecipeMatchCard } from "../components/RecipeMatchCard";
+import { InfoHintButton } from "../components/InfoHintButton";
 import { useAppData } from "../data/AppDataContext";
 import { materialIconForCategory } from "../data/iconFromCategory";
 import { GenerateRecipesPanel } from "../features/groq/GenerateRecipesPanel";
@@ -63,9 +64,16 @@ export function IngredientsScreen({
     toggleBookmarkRecipe,
   } = useAppData();
   const selected = new Set(state.selectedPantryIds);
-  const bucketOrder: IconCategory[] = ["Tiefkühl", "Kühlschrank", "Vorratsschrank"];
+  const bucketOrder: IconCategory[] = [
+    "Tiefkühl",
+    "Kühlschrank",
+    "Vorratsschrank",
+  ];
   const categoryOrder = new Map(bucketOrder.map((c, i) => [c, i]));
-  const byBucketThenNewestFirst = (a: (typeof state.pantry)[number], b: (typeof state.pantry)[number]) => {
+  const byBucketThenNewestFirst = (
+    a: (typeof state.pantry)[number],
+    b: (typeof state.pantry)[number],
+  ) => {
     const ia = categoryOrder.get(a.category) ?? 999;
     const ib = categoryOrder.get(b.category) ?? 999;
     if (ia !== ib) return ia - ib;
@@ -114,10 +122,15 @@ export function IngredientsScreen({
 
   const zutatenOrder = state.zutatenScreenRecipeOrder;
   const batchStart = Math.max(0, zutatenOrder.length - GROQ_RECIPES_PER_BATCH);
-  const newRecipeSlotIds = Array.from({ length: GROQ_RECIPES_PER_BATCH }, (_, i) => {
-    return zutatenOrder[batchStart + i];
-  });
-  const newlyGeneratedById = new Map(newlyGeneratedRecipeCards.map((c) => [c.id, c]));
+  const newRecipeSlotIds = Array.from(
+    { length: GROQ_RECIPES_PER_BATCH },
+    (_, i) => {
+      return zutatenOrder[batchStart + i];
+    },
+  );
+  const newlyGeneratedById = new Map(
+    newlyGeneratedRecipeCards.map((c) => [c.id, c]),
+  );
 
   return (
     <main className={`${INGREDIENTS_SCREEN_MAIN_CLASS} space-y-10`}>
@@ -165,7 +178,16 @@ export function IngredientsScreen({
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h3 className={ingredientSectionHeadingClass}>Gewürze</h3>
+          <h3
+            className={`inline-flex items-center gap-1 ${ingredientSectionHeadingClass}`}
+          >
+            <span>Gewürze</span>
+            <InfoHintButton
+              label="Hinweis zu Gewürze-Regel"
+              text="Ausgewählte Gewürze werden immer als optional behandelt, auch wenn 'alle ausgewählte Zutaten verwenden' ausgewählt ist"
+              popoverAlign="left"
+            />
+          </h3>
           <span className="text-xs font-semibold tabular-nums text-on-secondary-fixed-variant">
             {spiceItemCount} Einträge
           </span>
@@ -194,43 +216,52 @@ export function IngredientsScreen({
         matchingBookmarkedRecipeCards.length === 0 &&
         pendingGeneratedRecipeSlots === 0 ? (
           <p className="rounded-xl border border-dashed border-primary/20 px-4 py-8 text-center text-sm leading-relaxed text-on-surface-variant">
-            Keine Treffer. Wähle Zutaten aus dem Vorrat — es werden auch Rezepte
-            angezeigt, bei denen bis zu 2 Zutaten fehlen.
+            Noch keine Rezepte generiert. <br />
+            Wähle deine Zutaten oben aus, dann klicke auf &quot;Neue Rezepte
+            generieren&quot;
           </p>
         ) : (
           <div className="space-y-6">
             <div className="space-y-3">
               <div className="grid grid-cols-1 gap-3">
-              {newlyGeneratedRecipeCards.map((card) => {
-                const bookmarked = state.bookmarkedRecipeIds.includes(card.id);
-                return (
-                  <RecipeMatchCard
-                    key={card.id}
-                    title={card.title}
-                    minutes={card.minutes}
-                    onOpen={() => onOpenRecipe(card.id)}
-                    isFullMatch={card.missingIngredients.length === 0}
-                    endMeta={
-                      card.missingIngredients.length > 0 ? (
-                        <MissingIngredientsSummary names={card.missingIngredients} />
-                      ) : (
-                        <span className="truncate font-bold uppercase tracking-tighter text-on-surface-variant">
-                          {card.tag}
-                        </span>
-                      )
-                    }
-                    bookmarked={bookmarked}
-                    onBookmarkToggle={() => {
-                      toggleBookmarkRecipe(card.id);
-                    }}
-                  />
-                );
-              })}
-              {isGeneratingRecipes
-                ? Array.from({ length: pendingGeneratedRecipeSlots }).map((_, i) => (
-                    <RecipeMatchCardSkeleton key={`gen-skel-ingredients-${i}`} />
-                  ))
-                : null}
+                {newlyGeneratedRecipeCards.map((card) => {
+                  const bookmarked = state.bookmarkedRecipeIds.includes(
+                    card.id,
+                  );
+                  return (
+                    <RecipeMatchCard
+                      key={card.id}
+                      title={card.title}
+                      minutes={card.minutes}
+                      onOpen={() => onOpenRecipe(card.id)}
+                      isFullMatch={card.missingIngredients.length === 0}
+                      endMeta={
+                        card.missingIngredients.length > 0 ? (
+                          <MissingIngredientsSummary
+                            names={card.missingIngredients}
+                          />
+                        ) : (
+                          <span className="truncate font-bold uppercase tracking-tighter text-on-surface-variant">
+                            {card.tag}
+                          </span>
+                        )
+                      }
+                      bookmarked={bookmarked}
+                      onBookmarkToggle={() => {
+                        toggleBookmarkRecipe(card.id);
+                      }}
+                    />
+                  );
+                })}
+                {isGeneratingRecipes
+                  ? Array.from({ length: pendingGeneratedRecipeSlots }).map(
+                      (_, i) => (
+                        <RecipeMatchCardSkeleton
+                          key={`gen-skel-ingredients-${i}`}
+                        />
+                      ),
+                    )
+                  : null}
               </div>
             </div>
 
@@ -249,13 +280,15 @@ export function IngredientsScreen({
               </div>
               {state.bookmarkedRecipeIds.length === 0 ? (
                 <p className="text-sm leading-relaxed text-on-surface-variant">
-                  Noch keine gespeicherten Rezepte. Speichere ein Rezept, um es hier
-                  anzuzeigen.
+                  Noch keine gespeicherten Rezepte. Speichere ein Rezept, um es
+                  hier anzuzeigen.
                 </p>
               ) : null}
               <div className="grid grid-cols-1 gap-3">
                 {matchingBookmarkedRecipeCards.map((card) => {
-                  const bookmarked = state.bookmarkedRecipeIds.includes(card.id);
+                  const bookmarked = state.bookmarkedRecipeIds.includes(
+                    card.id,
+                  );
                   return (
                     <RecipeMatchCard
                       key={card.id}
@@ -265,7 +298,9 @@ export function IngredientsScreen({
                       isFullMatch={card.missingIngredients.length === 0}
                       endMeta={
                         card.missingIngredients.length > 0 ? (
-                          <MissingIngredientsSummary names={card.missingIngredients} />
+                          <MissingIngredientsSummary
+                            names={card.missingIngredients}
+                          />
                         ) : (
                           <span className="truncate font-bold uppercase tracking-tighter text-on-surface-variant">
                             {card.tag}

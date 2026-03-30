@@ -25,6 +25,8 @@ export const generateRecipeRequestSchema = z
     regionLabel: z.string(),
     previousRecipeTitles: z.array(z.string()).optional(),
     previousRecipeHints: z.array(previousRecipeHintSchema).optional(),
+    preferStarchBaseThisSlot: z.boolean().optional(),
+    preferCreativeThisSlot: z.boolean().optional(),
     generationIndex: z.number().int().min(0).default(0),
     totalRecipesToGenerate: z.number().int().min(1).default(1),
   })

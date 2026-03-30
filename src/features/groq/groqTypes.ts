@@ -28,6 +28,16 @@ export type RecipeGenerationInput = {
     equipmentNote?: string;
     flavorNote?: string;
   }>;
+  /**
+   * Slot-level steering: true means this recipe should prefer a starch base
+   * (Pasta/Reis), false means deprioritize to keep batch variety.
+   */
+  preferStarchBaseThisSlot?: boolean;
+  /**
+   * Slot-level steering: true means prioritize a more creative recipe idea;
+   * false means favor a more common/popular dish profile.
+   */
+  preferCreativeThisSlot?: boolean;
 };
 
 export type GroqIngredientLine = {

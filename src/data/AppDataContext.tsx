@@ -278,6 +278,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         });
 
         for (let i = 0; i < totalRecipesToGenerate; i++) {
+          const preferStarchBaseThisSlot = i % 2 === 0;
+          const preferCreativeThisSlot = (i + 1) % 3 === 0;
           const result = await fetchRecipeFromGroqOnce(
             apiKey,
             {
@@ -287,6 +289,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
               regionLabel: state.shoppingLocationLabel,
               previousRecipeTitles,
               previousRecipeHints,
+              preferStarchBaseThisSlot,
+              preferCreativeThisSlot,
             },
             { generationIndex: i, totalRecipesToGenerate },
           );

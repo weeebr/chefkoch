@@ -63,6 +63,11 @@ export function buildUserPrompt(
     line("BATCH_INDEX", String(batch.batchIndex)),
     line("BATCH_TOTAL", String(batch.totalBatches)),
     line("SLOT_RANGE", `${slotStart}–${slotEnd} of ${totalRecipes}`),
+    line(
+      "PREFER_STARCH_BASE_THIS_SLOT",
+      input.preferStarchBaseThisSlot ? "Yes" : "No",
+    ),
+    line("PREFER_CREATIVE_THIS_SLOT", input.preferCreativeThisSlot ? "Yes" : "No"),
   ];
 
   for (const p of input.pantryLines) {

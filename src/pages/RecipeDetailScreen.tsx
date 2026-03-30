@@ -319,9 +319,17 @@ export function RecipeDetailScreen({
 
         {detail.requiredBaseStaples.length > 0 ? (
           <div className="mb-4 rounded-xl border border-outline-variant/15 bg-surface-container-low/45 px-2.5 py-2">
-            <p className="font-label text-[10px] font-medium uppercase tracking-[0.14em] text-on-surface-variant/80">
-              Basis-Vorrat
-            </p>
+            <div className="inline-flex items-center gap-1">
+              <p className="font-label text-[10px] font-medium uppercase tracking-[0.14em] text-on-surface-variant/80">
+                Basis-Vorrat
+              </p>
+              <InfoHintButton
+                label="Hinweis zu Basisvorrat"
+                text="Als Basisvorrat vorausgesetzt: Salz, Pfeffer, Öl, Mehl, Zucker, Pasta, Reis, Butter, Milch"
+                popoverAlign="center"
+                buttonClassName="!h-auto !w-auto !text-on-surface-variant/80 [&_.material-symbols-outlined]:!text-base active:!bg-surface-container-high active:!text-on-surface-variant/80"
+              />
+            </div>
             <p className="mt-0.5 font-body text-sm leading-snug text-on-surface/85">
               {detail.requiredBaseStaples.join(", ")}
             </p>

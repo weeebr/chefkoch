@@ -44,6 +44,8 @@ type GenerateRecipeRequest = {
     equipmentNote?: string;
     flavorNote?: string;
   }>;
+  preferStarchBaseThisSlot?: boolean;
+  preferCreativeThisSlot?: boolean;
   generationIndex: number;
   totalRecipesToGenerate: number;
 };
@@ -167,6 +169,8 @@ export async function generateRecipeOnceWithGroqJsonSchema(
       regionLabel: req.regionLabel,
       previousRecipeTitles: req.previousRecipeTitles,
       previousRecipeHints: req.previousRecipeHints,
+      preferStarchBaseThisSlot: req.preferStarchBaseThisSlot,
+      preferCreativeThisSlot: req.preferCreativeThisSlot,
     },
     {
       batchIndex: req.generationIndex,

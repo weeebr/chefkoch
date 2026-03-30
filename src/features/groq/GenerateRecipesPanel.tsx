@@ -158,9 +158,7 @@ export function GenerateRecipesPanel() {
               checkboxDisabled ? "text-on-surface/50" : "text-on-surface",
             ].join(" ")}
           >
-            <span className="font-semibold">
-              alle ausgewählte Zutaten verwenden
-            </span>
+            <span className="font-semibold">alle ausgewählte Zutaten verwenden</span>
           </span>
         </label>
       </div>
