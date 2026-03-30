@@ -3,8 +3,8 @@
  * OWNERSHIP: backend post-fetch pipeline only.
  * FORBIDDEN: client-side import or usage.
  */
-import { baseStapleDisplayNameFromComponent } from "../../data/basePantry";
-import { normalizeIngredientLabel } from "../../data/ingredientLabel";
+import { baseStapleDisplayNameFromComponent } from "../../data/basePantry.js";
+import { normalizeIngredientLabel } from "../../data/ingredientLabel.js";
 import type { GroqIngredientLine, GroqRecipeJson } from "./groqTypes";
 
 /**

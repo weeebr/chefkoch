@@ -1,4 +1,4 @@
-import { normalizeIngredientLabel } from "./ingredientLabel";
+import { normalizeIngredientLabel } from "./ingredientLabel.js";
 
 /** Canonical base staples (implicit pantry); never shown in Einkaufen/Zutaten tables. */
 export const BASE_STAPLE_DISPLAY_NAMES = [

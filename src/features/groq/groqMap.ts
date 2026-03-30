@@ -4,10 +4,10 @@
  * FORBIDDEN: client-side import or usage. These functions must only be called
  * from the backend after Zod validation.
  */
-import { baseStapleDisplayNameFromComponent, parseRequiredBaseStaplesFromGroq } from "../../data/basePantry";
-import { normalizeIngredientLabel } from "../../data/ingredientLabel";
+import { baseStapleDisplayNameFromComponent, parseRequiredBaseStaplesFromGroq } from "../../data/basePantry.js";
+import { normalizeIngredientLabel } from "../../data/ingredientLabel.js";
 import type { RecipeDetail, RecipeIngredientRow, RecipeListRow, RecipeMethodStep } from "../../types";
-import { cleanupNoteFromGroq } from "./cleanupNote";
+import { cleanupNoteFromGroq } from "./cleanupNote.js";
 import type { GroqIngredientLine, GroqRecipeJson, GroqStepLine } from "./groqTypes";
 // Mappers assume backend already applied step-guard + Swiss orthography normalization.
 

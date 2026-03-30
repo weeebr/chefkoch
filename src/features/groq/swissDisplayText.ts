@@ -4,7 +4,7 @@
  * FORBIDDEN: client-side or storage-layer import/usage.
  */
 import type { RecipeDetail, RecipeListRow } from "../../types";
-import { normalizeIngredientQuantityText } from "../../utils/normalizeIngredientQuantity";
+import { normalizeIngredientQuantityText } from "../../utils/normalizeIngredientQuantity.js";
 import type { GroqIngredientLine, GroqRecipeJson, GroqStepLine } from "./groqTypes";
 
 /** Swiss-style orthography: no Eszett (U+00DF); normalize to `ss`. */

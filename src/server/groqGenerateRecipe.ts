@@ -6,7 +6,7 @@
 import {
   buildSystemPrompt,
   buildUserPrompt,
-} from "../features/groq/groqPrompt";
+} from "../features/groq/groqPrompt.js";
 import type {
   GeneratedRecipeResult,
   RecipeGenerationPantryLine,
@@ -15,20 +15,20 @@ import { randomUUID } from "node:crypto";
 import {
   groqRecipeContractSchema,
   getGroqRecipeJsonSchema,
-} from "./groqRecipeContractSchema";
-import { normalizeGroqRecipeForPolicy } from "../features/groq/groqPolicy";
+} from "./groqRecipeContractSchema.js";
+import { normalizeGroqRecipeForPolicy } from "../features/groq/groqPolicy.js";
 import {
   groqJsonToRecipeDetail,
   groqJsonToListRow,
   groqJsonToTag,
-} from "../features/groq/groqMap";
+} from "../features/groq/groqMap.js";
 import {
   collapseStepWhitespace,
   sanitizeStepSpiceMentions,
-} from "../features/groq/stepSpiceGuard";
+} from "../features/groq/stepSpiceGuard.js";
 import {
   normalizeGroqRecipeJsonForBackendSanitization,
-} from "../features/groq/swissDisplayText";
+} from "../features/groq/swissDisplayText.js";
 
 const GROQ_MODEL = "moonshotai/kimi-k2-instruct-0905";
 
