@@ -62,9 +62,11 @@
     background: linear-gradient(
       90deg,
       rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.22) 50%,
+      rgba(255, 255, 255, 0.16) 45%,
+      rgba(255, 255, 255, 0.28) 50%,
+      rgba(255, 255, 255, 0.16) 55%,
       rgba(255, 255, 255, 0) 100%
     );
-    animation: skeleton-wave 1.35s linear infinite;
+    animation: skeleton-wave 1.6s ease-in-out infinite;
   }
 }

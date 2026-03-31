@@ -22,6 +22,17 @@ export const groqIngredientLineSchema: z.ZodType<GroqIngredientLine> = z
   })
   .strict();
 
+const groqSpiceIngredientLineSchema: z.ZodType<GroqIngredientLine> = z
+  .object({
+    component: z.string().min(1),
+    // Spice quantities can be omitted by the model; we normalize downstream.
+    quantity: z.string(),
+    alternatives: z.string().optional(),
+    purchaseHint: z.string().optional(),
+    flavorNote: z.string().optional(),
+  })
+  .strict();
+
 export const groqStepLineSchema: z.ZodType<GroqStepLine> = z
   .object({
     order: z.number().int().min(1),
@@ -45,7 +56,7 @@ export const groqRecipeContractProviderSchema: z.ZodType<GroqRecipeJson> = z
     ingredientsOnHand: z.array(groqIngredientLineSchema).min(1),
     ingredientsShopping: z.array(groqIngredientLineSchema),
     /** Explicit spices (not implicit base staples); may be empty. */
-    spices: z.array(groqIngredientLineSchema),
+    spices: z.array(groqSpiceIngredientLineSchema),
     /** Canonical base staple names this recipe needs from the fixed implicit list. */
     requiredBaseStaples: z.array(z.string()),
 
@@ -113,7 +124,7 @@ const groqRecipeJsonSchemaForResponseFormat: Record<string, unknown> = {
         ],
         properties: {
           component: { type: "string", minLength: 1 },
-          quantity: { type: "string", minLength: 1 },
+          quantity: { type: "string" },
           alternatives: { type: "string" },
           purchaseHint: { type: "string" },
           flavorNote: { type: "string" },

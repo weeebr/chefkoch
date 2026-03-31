@@ -336,6 +336,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           /try again in\s+[\d.]+/i.test(msg);
         if (isRateLimit) {
           recordRateLimitCooldown(Date.now(), msg);
+          // For rate limits, don't surface the raw backend message in UI.
+          // The generate button countdown is the user-facing feedback.
+          return null;
         }
         return msg;
       } finally {
