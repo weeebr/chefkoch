@@ -249,7 +249,9 @@ export async function generateRecipeOnceWithGroqJsonSchema(
     ...swissNormalized,
     spices: (swissNormalized.spices ?? []).map((s) => ({
       ...s,
-      quantity: s.quantity.trim() || "nach Geschmack",
+      quantity:
+        (typeof s.quantity === "string" ? s.quantity : "").trim() ||
+        "nach Geschmack",
     })),
     steps,
   };
